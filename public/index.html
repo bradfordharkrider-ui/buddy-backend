@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Buddy</title>
+<style>
+  :root{
+    --ink:#12151C;
+    --panel:#1A1F29;
+    --panel-raised:#20263241;
+    --hair:#2B3140;
+    --gold:#D4A94F;
+    --gold-dim:#8A7239;
+    --rose:#C4554A;
+    --sage:#6E9B7A;
+    --amber-soft:#E8C77A;
+    --text:#EDEFF3;
+    --text-dim:#9CA3B0;
+    --text-faint:#5C6270;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--ink);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    position:relative;
+    padding-bottom:84px;
+  }
+  .num{ font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
+
+  /* Header */
+  header.topbar{
+    padding:22px 20px 14px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:1px solid var(--hair);
+  }
+  .wordmark{
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:-0.02em;
+  }
+  .wordmark span{ color:var(--gold); }
+  .header-right{ display:flex; align-items:baseline; gap:10px; }
+  .datestamp{ font-size:12px; color:var(--text-faint); }
+  .mode-badge{
+    font-size:10px; font-weight:700; letter-spacing:0.03em; text-transform:uppercase;
+    padding:3px 8px; border-radius:20px; border:1px solid var(--hair); color:var(--text-faint);
+  }
+  .mode-badge.shadow{ color:var(--gold); border-color:rgba(212,169,79,0.35); background:rgba(212,169,79,0.08); }
+  .mode-badge.live{ color:var(--rose); border-color:rgba(196,85,74,0.35); background:rgba(196,85,74,0.08); }
+  .mode-badge.offline{ color:var(--rose); }
+
+  main{ padding:20px 20px 8px; }
+
+  .tabpanel{ display:none; animation:fadein .25s ease; }
+  .tabpanel.active{ display:block; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  /* Empty / coming soon state */
+  .empty-state{
+    padding:60px 8px 40px;
+    text-align:left;
+  }
+  .empty-state .glyph{
+    width:40px; height:40px;
+    border:1.5px solid var(--hair);
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:22px;
+    color:var(--text-dim);
+  }
+  .empty-state h2{
+    font-size:20px;
+    font-weight:600;
+    margin-bottom:10px;
+    letter-spacing:-0.01em;
+  }
+  .empty-state p{
+    font-size:14px;
+    line-height:1.55;
+    color:var(--text-dim);
+    max-width:34ch;
+  }
+  .empty-state .tag{
+    display:inline-block;
+    margin-top:20px;
+    font-size:12px;
+    color:var(--text-faint);
+    border-top:1px solid var(--hair);
+    padding-top:14px;
+    width:100%;
+  }
+
+  /* Hero balance panel */
+  .hero{
+    padding:26px 22px;
+    background:linear-gradient(155deg, #1D2432, #171B24);
+    border:1px solid var(--hair);
+    border-radius:4px;
+    margin-bottom:18px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; top:0; left:0; bottom:0; width:3px;
+    background:var(--gold);
+  }
+  .hero-label{ font-size:12px; color:var(--text-dim); margin-bottom:6px; }
+  .hero-figure{ font-size:36px; font-weight:700; letter-spacing:-0.02em; }
+  .hero-sub{ margin-top:8px; font-size:13px; }
+  .hero-sub .up{ color:var(--sage); }
+  .hero-sub .down{ color:var(--rose); }
+  .hero-split{
+    margin-top:18px; padding-top:16px; border-top:1px solid var(--hair);
+    display:flex; gap:24px;
+  }
+  .hero-split div{ flex:1; }
+  .hero-split .k{ font-size:11px; color:var(--text-faint); margin-bottom:3px; }
+  .hero-split .v{ font-size:15px; font-weight:600; }
+
+  /* Section headers */
+  .section-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin:26px 0 12px;
+  }
+  .section-head h3{ font-size:14px; font-weight:600; color:var(--text); }
+  .section-head button.link{
+    background:none; border:none; color:var(--gold); font-size:12.5px;
+    font-family:inherit; cursor:pointer; padding:2px;
+  }
+
+  /* Report card */
+  .report{
+    background:var(--panel);
+    border:1px solid var(--hair);
+    border-radius:4px;
+    padding:16px 18px;
+  }
+  .report-block{ margin-bottom:16px; }
+  .report-block:last-child{ margin-bottom:0; }
+  .report-block h4{
+    font-size:12px; color:var(--gold); font-weight:600;
+    margin-bottom:8px; letter-spacing:0.01em;
+  }
+  .report-block ul{ list-style:none; }
+  .report-block li{
+    font-size:13.5px; line-height:1.55; color:var(--text-dim);
+    padding-left:14px; position:relative; margin-bottom:6px;
+  }
+  .report-block li::before{
+    content:"–"; position:absolute; left:0; color:var(--text-faint);
+  }
+  .report-note{
+    font-size:11px; color:var(--text-faint); margin-top:14px;
+    padding-top:12px; border-top:1px solid var(--hair);
+  }
+
+  /* Buddy opinion banner */
+  .opinion{
+    margin-top:16px;
+    background:rgba(212,169,79,0.08);
+    border:1px solid rgba(212,169,79,0.35);
+    border-radius:4px;
+    padding:14px 16px;
+    display:flex; gap:12px;
+  }
+  .opinion .dot{
+    width:8px; height:8px; border-radius:50%; background:var(--gold);
+    margin-top:6px; flex-shrink:0;
+  }
+  .opinion strong{ font-size:13px; display:block; margin-bottom:4px; }
+  .opinion p{ font-size:13px; line-height:1.5; color:var(--text-dim); }
+
+  /* Risk tiers */
+  .tier{
+    background:var(--panel);
+    border:1px solid var(--hair);
+    border-left:3px solid var(--hair);
+    border-radius:2px;
+    padding:16px 18px;
+    margin-bottom:12px;
+  }
+  .tier.low{ border-left-color:var(--sage); }
+  .tier.medium{ border-left-color:var(--gold); }
+  .tier.high{ border-left-color:var(--rose); }
+  .tier-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+  .tier-name{ font-size:15px; font-weight:700; }
+  .tier.low .tier-name{ color:var(--sage); }
+  .tier.medium .tier-name{ color:var(--amber-soft); }
+  .tier.high .tier-name{ color:var(--rose); }
+  .tier-alloc{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .tier-desc{ font-size:13px; color:var(--text-dim); line-height:1.5; margin-bottom:14px; }
+  .tier-actions{ display:flex; gap:8px; }
+  .btn{
+    font-family:inherit; font-size:12.5px; font-weight:600;
+    padding:9px 14px; border-radius:3px; cursor:pointer;
+    border:1px solid var(--hair); background:transparent; color:var(--text);
+    flex:1; text-align:center;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn:disabled{ opacity:0.5; cursor:default; }
+  .btn.primary{ background:var(--gold); border-color:var(--gold); color:#1A1406; }
+  .btn.ghost{ color:var(--text-dim); }
+
+  .picks{
+    margin-top:14px; padding-top:14px; border-top:1px solid var(--hair);
+    display:none;
+  }
+  .picks.open{ display:block; }
+  .pick-row{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:13px; padding:7px 0;
+  }
+  .pick-row .ticker{ font-weight:700; }
+  .pick-row .why{ color:var(--text-faint); font-size:11.5px; margin-top:2px; }
+  .pick-row .weight{ font-variant-numeric:tabular-nums; color:var(--text-dim); }
+
+  /* Bottom nav */
+  nav.tabbar{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:480px;
+    background:rgba(18,21,28,0.92);
+    backdrop-filter:blur(10px);
+    border-top:1px solid var(--hair);
+    display:flex;
+    padding:8px 4px calc(8px + env(safe-area-inset-bottom));
+  }
+  nav.tabbar button{
+    flex:1; background:none; border:none; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    padding:6px 2px; cursor:pointer; color:var(--text-faint);
+  }
+  nav.tabbar button svg{ width:20px; height:20px; }
+  nav.tabbar button span{ font-size:10px; font-weight:600; }
+  nav.tabbar button.active{ color:var(--gold); }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(8,9,12,0.7);
+    display:none; align-items:flex-end; justify-content:center; z-index:50;
+  }
+  .overlay.open{ display:flex; }
+  .modal{
+    background:var(--panel); width:100%; max-width:480px;
+    border-radius:14px 14px 0 0; border:1px solid var(--hair); border-bottom:none;
+    padding:22px 22px calc(22px + env(safe-area-inset-bottom));
+    animation:slideup .22s ease;
+  }
+  @keyframes slideup{ from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+  .modal h3{ font-size:17px; margin-bottom:4px; }
+  .modal .sub{ font-size:12.5px; color:var(--text-faint); margin-bottom:18px; }
+  .modal .trade-row{
+    display:flex; justify-content:space-between; font-size:13.5px;
+    padding:9px 0; border-bottom:1px solid var(--hair);
+  }
+  .modal .trade-row:last-of-type{ border-bottom:none; }
+  .modal-actions{ display:flex; gap:10px; margin-top:20px; }
+  .banner-note{
+    margin-top:16px; font-size:11.5px; color:var(--text-faint);
+    line-height:1.5; background:rgba(255,255,255,0.03);
+    border-radius:4px; padding:10px 12px;
+  }
+
+  .toast{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%) translateY(-60px);
+    background:var(--panel); border:1px solid var(--hair);
+    padding:11px 18px; border-radius:6px; font-size:13px;
+    max-width:400px; z-index:60; transition:transform .3s ease;
+  }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+
+  /* Work tab: briefing strip */
+  .brief-strip{
+    display:flex; gap:10px; margin-top:14px; padding-top:16px; border-top:1px solid var(--hair);
+  }
+  .brief-item{ flex:1; }
+  .brief-item .v{ font-size:19px; font-weight:700; }
+  .brief-item .k{ font-size:11px; color:var(--text-faint); margin-top:2px; }
+
+  /* Email cards */
+  .email-card{
+    background:var(--panel); border:1px solid var(--hair); border-radius:4px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .email-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:6px; }
+  .email-from{ font-size:13.5px; font-weight:600; }
+  .email-subject{ font-size:13px; color:var(--text-dim); margin-bottom:8px; }
+  .tag{
+    font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:20px;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .tag.urgent{ background:rgba(196,85,74,0.15); color:var(--rose); }
+  .tag.waiting{ background:rgba(212,169,79,0.15); color:var(--gold); }
+  .tag.low{ background:rgba(156,163,176,0.12); color:var(--text-faint); }
+  .email-blurb{ font-size:13px; color:var(--text-dim); line-height:1.5; margin-bottom:12px; }
+  .email-actions{ display:flex; gap:8px; }
+
+  /* Meeting / prep cards */
+  .meeting-card{
+    background:var(--panel); border:1px solid var(--hair); border-radius:4px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .meeting-top{ display:flex; justify-content:space-between; align-items:baseline; }
+  .meeting-time{ font-size:12.5px; color:var(--gold); font-weight:600; }
+  .meeting-title{ font-size:14px; font-weight:600; margin-top:2px; }
+  .prep-toggle{
+    background:none; border:none; color:var(--text-faint); font-family:inherit;
+    font-size:12px; cursor:pointer; margin-top:8px; padding:0;
+  }
+  .prep-body{ display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--hair); }
+  .prep-body.open{ display:block; }
+  .prep-body li{ font-size:12.5px; color:var(--text-dim); line-height:1.5; margin-bottom:5px; padding-left:12px; position:relative; }
+  .prep-body li::before{ content:"–"; position:absolute; left:0; color:var(--text-faint); }
+
+  /* Calendar suggestion cards */
+  .cal-card{
+    background:rgba(212,169,79,0.06); border:1px solid rgba(212,169,79,0.3); border-radius:4px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .cal-card p{ font-size:13px; color:var(--text-dim); line-height:1.5; margin-bottom:12px; }
+  .cal-card .email-actions{ display:flex; gap:8px; }
+
+  /* Task list */
+  .task-item{
+    display:flex; align-items:flex-start; gap:10px;
+    padding:10px 0; border-bottom:1px solid var(--hair);
+    font-size:13.5px; cursor:pointer;
+  }
+  .task-item:last-child{ border-bottom:none; }
+  .task-item .box{
+    width:16px; height:16px; border:1.5px solid var(--text-faint); border-radius:3px;
+    flex-shrink:0; margin-top:1px; display:flex; align-items:center; justify-content:center;
+  }
+  .task-item.done .box{ background:var(--sage); border-color:var(--sage); }
+  .task-item.done .label{ color:var(--text-faint); text-decoration:line-through; }
+  .task-item .box svg{ width:11px; height:11px; display:none; color:#0F1811; }
+  .task-item.done .box svg{ display:block; }
+
+  textarea.draft{
+    width:100%; min-height:120px; background:var(--ink); border:1px solid var(--hair);
+    border-radius:4px; color:var(--text); font-family:inherit; font-size:13.5px;
+    padding:12px; line-height:1.5; resize:vertical;
+  }
+
+  .load-note{ font-size:12.5px; color:var(--text-faint); padding:10px 2px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wordmark">Buddy<span>.</span></div>
+  <div class="header-right">
+    <span class="mode-badge" id="mode-badge">connecting…</span>
+    <div class="datestamp" id="datestamp"></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- FINANCIAL TAB -->
+  <section class="tabpanel active" id="tab-financial">
+
+    <div class="hero">
+      <div class="hero-label">Agentic account (Robinhood)</div>
+      <div class="hero-figure num" id="acct-balance">—</div>
+      <div class="hero-sub"><span id="acct-change">—</span></div>
+      <div class="hero-split">
+        <div>
+          <div class="k">Buddy-managed</div>
+          <div class="v num" id="buddy-side">—</div>
+        </div>
+        <div>
+          <div class="k">Self-managed (yours)</div>
+          <div class="v num" id="self-side">—</div>
+        </div>
+        <div>
+          <div class="k">Funding rule</div>
+          <div class="v" id="funding-rule">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h3>Weekly check-in</h3>
+      <button class="link" id="refresh-report">Re-run report</button>
+    </div>
+
+    <div class="report" id="report-card">
+      <div class="load-note">Loading report…</div>
+    </div>
+
+    <div class="opinion" id="opinion-card" style="display:none;">
+      <div class="dot"></div>
+      <div>
+        <strong>Buddy's take</strong>
+        <p id="opinion-text"></p>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h3>Choose this week's posture</h3>
+    </div>
+
+    <div id="tiers-container">
+      <div class="load-note">Loading risk tiers…</div>
+    </div>
+
+  </section>
+
+  <!-- WORK TAB -->
+  <section class="tabpanel" id="tab-work">
+
+    <div class="hero">
+      <div class="hero-label">Outlook · Work</div>
+      <div class="hero-figure" style="font-size:22px;" id="work-heading">Here's your day</div>
+      <div class="brief-strip">
+        <div class="brief-item"><div class="v num" id="brief-meetings">—</div><div class="k">Meetings today</div></div>
+        <div class="brief-item"><div class="v num" id="brief-reply">—</div><div class="k">Need a reply</div></div>
+        <div class="brief-item"><div class="v num" id="brief-overdue">—</div><div class="k">Overdue follow-up</div></div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h3>Inbox triage</h3>
+      <button class="link" id="rescan-inbox">Re-scan</button>
+    </div>
+
+    <div id="emails-container">
+      <div class="load-note">Loading inbox…</div>
+    </div>
+
+    <div class="section-head">
+      <h3>Today's meetings</h3>
+    </div>
+
+    <div id="meetings-container">
+      <div class="load-note">Loading meetings…</div>
+    </div>
+
+    <div class="section-head">
+      <h3>Calendar suggestions</h3>
+    </div>
+
+    <div id="cal-container">
+      <div class="load-note">Loading suggestions…</div>
+    </div>
+
+    <div class="section-head">
+      <h3>Follow-ups &amp; tasks</h3>
+    </div>
+
+    <div class="report" style="padding:6px 18px;" id="tasks-container">
+      <div class="load-note">Loading tasks…</div>
+    </div>
+    <div class="report-note" style="margin-top:8px;">Shadow mode uses realistic sample data — live version reads directly from Outlook via Microsoft Graph.</div>
+
+  </section>
+
+  <!-- SOCIAL TAB -->
+  <section class="tabpanel" id="tab-social">
+    <div class="empty-state">
+      <div class="glyph">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c1-3.5 4-5.5 7-5.5s6 2 7 5.5"/></svg>
+      </div>
+      <h2>Social life isn't built yet</h2>
+      <p>Room for the parts of your life you haven't scoped yet — plans, relationships, whatever you decide belongs here.</p>
+      <div class="tag">Design this one whenever you're ready.</div>
+    </div>
+  </section>
+
+  <!-- HEALTH TAB -->
+  <section class="tabpanel" id="tab-health">
+    <div class="empty-state">
+      <div class="glyph">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.8 8.6c0 4.2-8.8 10-8.8 10s-8.8-5.8-8.8-10a4.6 4.6 0 0 1 8.8-2 4.6 4.6 0 0 1 8.8 2Z"/></svg>
+      </div>
+      <h2>Health isn't built yet</h2>
+      <p>Reserved for whatever you want tracked here — fitness, sleep, appointments. Its own credentials, same isolation rule.</p>
+      <div class="tag">Design this one whenever you're ready.</div>
+    </div>
+  </section>
+
+  <!-- WORKSHOP TAB -->
+  <section class="tabpanel" id="tab-workshop">
+    <div class="empty-state">
+      <div class="glyph">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6Z"/></svg>
+      </div>
+      <h2>Workshop isn't built yet</h2>
+      <p>Space for projects, tools, and whatever "workshop" means for your life — that's yours to define.</p>
+      <div class="tag">Design this one whenever you're ready.</div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button class="active" data-tab="financial">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v6h-6"/></svg>
+    <span>Financial</span>
+  </button>
+  <button data-tab="work">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    <span>Work</span>
+  </button>
+  <button data-tab="social">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c1-3.5 4-5.5 7-5.5s6 2 7 5.5"/></svg>
+    <span>Social</span>
+  </button>
+  <button data-tab="health">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.8 8.6c0 4.2-8.8 10-8.8 10s-8.8-5.8-8.8-10a4.6 4.6 0 0 1 8.8-2 4.6 4.6 0 0 1 8.8 2Z"/></svg>
+    <span>Health</span>
+  </button>
+  <button data-tab="workshop">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6Z"/></svg>
+    <span>Workshop</span>
+  </button>
+</nav>
+
+<!-- Confirm modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modal-title">Confirm posture</h3>
+    <div class="sub" id="modal-sub">Review before anything is sent to Robinhood.</div>
+    <div id="modal-trades"></div>
+    <div class="banner-note" id="modal-note">Shadow mode: no live Robinhood connection yet, so nothing real executes. In the built version, this step sends staged trades to your Agentic account for final confirmation there too.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn primary" id="confirm-send-btn" onclick="sendTrade()">Confirm &amp; send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Draft reply modal -->
+<div class="overlay" id="overlay-draft">
+  <div class="modal">
+    <h3 id="draft-title">Draft reply</h3>
+    <div class="sub">Edit however you like — Buddy never sends this for you.</div>
+    <textarea class="draft" id="draft-text"></textarea>
+    <div class="banner-note" id="draft-note">Shadow mode: copy this draft and paste it into Outlook yourself. In the built version, this opens directly as a draft in your Outlook account.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeDraft()">Cancel</button>
+      <button class="btn primary" onclick="copyDraft()">Copy draft</button>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar suggestion modal -->
+<div class="overlay" id="overlay-cal">
+  <div class="modal">
+    <h3>Approve calendar change</h3>
+    <div class="sub" id="cal-detail"></div>
+    <div class="banner-note" id="cal-note">Shadow mode: this won't touch a real calendar yet. In the built version, approving here writes the change to Outlook via Microsoft Graph.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeCal()">Cancel</button>
+      <button class="btn primary" onclick="approveCal()">Approve change</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = ''; // same-origin — server serves both the API and this file
+
+  // ── Tab switching ──────────────────────────────────────────
+  const buttons = document.querySelectorAll('nav.tabbar button');
+  buttons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      buttons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tabpanel').forEach(p=>p.classList.remove('active'));
+      document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  document.getElementById('datestamp').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'});
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 3200);
+  }
+
+  function fmtUSD(n){
+    return '$' + Number(n).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  async function api(path, opts){
+    const res = await fetch(API + path, opts);
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      throw new Error(body.error || ('Request failed: ' + res.status));
+    }
+    return res.json();
+  }
+
+  // ── Health / mode badge ────────────────────────────────────
+  async function loadHealth(){
+    const badge = document.getElementById('mode-badge');
+    try{
+      const health = await api('/api/health');
+      if(health.shadowMode){
+        badge.textContent = 'Shadow mode';
+        badge.className = 'mode-badge shadow';
+      } else {
+        badge.textContent = 'Live';
+        badge.className = 'mode-badge live';
+      }
+    } catch(err){
+      badge.textContent = 'Backend offline';
+      badge.className = 'mode-badge offline';
+    }
+  }
+
+  // ── Financial tab ──────────────────────────────────────────
+  async function loadPortfolio(){
+    try{
+      const p = await api('/api/financial/portfolio');
+      document.getElementById('acct-balance').textContent = fmtUSD(p.balance);
+      const up = p.todayChange >= 0;
+      document.getElementById('acct-change').innerHTML =
+        `<span class="${up?'up':'down'}">${up?'▲':'▼'} ${fmtUSD(Math.abs(p.todayChange))} (${Math.abs(p.todayChangePct)}%) today</span>`;
+      document.getElementById('buddy-side').textContent = fmtUSD(p.buddyManaged);
+      document.getElementById('self-side').textContent = fmtUSD(p.selfManaged);
+      document.getElementById('funding-rule').textContent = p.fundingRulePct + '% auto';
+    } catch(err){
+      document.getElementById('acct-balance').textContent = 'Unavailable';
+      showToast('Could not load portfolio: ' + err.message);
+    }
+  }
+
+  async function loadReport(){
+    const card = document.getElementById('report-card');
+    const opinionCard = document.getElementById('opinion-card');
+    try{
+      const report = await api('/api/financial/report');
+      card.innerHTML = report.blocks.map(b => `
+        <div class="report-block">
+          <h4>${b.title}</h4>
+          <ul>${b.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+        </div>
+      `).join('') + `<div class="report-note">${report.shadow ? 'Shadow mode — sample data. Live version connects via Robinhood\'s Trading MCP + real-time news sources.' : 'Live market report.'}</div>`;
+      document.getElementById('opinion-text').textContent = report.opinion;
+      opinionCard.style.display = 'flex';
+    } catch(err){
+      card.innerHTML = `<div class="load-note">Could not load report: ${err.message}</div>`;
+      opinionCard.style.display = 'none';
+    }
+  }
+
+  let TIERS = [];
+  async function loadTiers(){
+    const container = document.getElementById('tiers-container');
+    try{
+      const data = await api('/api/financial/tiers');
+      TIERS = data.tiers;
+      container.innerHTML = TIERS.map(t => `
+        <div class="tier ${t.id}">
+          <div class="tier-top">
+            <div class="tier-name">${t.name}</div>
+            <div class="tier-alloc num">${t.allocationPct}%</div>
+          </div>
+          <div class="tier-desc">${t.description}</div>
+          <div class="tier-actions">
+            <button class="btn" onclick="togglePicks('${t.id}')">Buddy's Picks</button>
+            <button class="btn primary" onclick="openConfirm('${t.id}')">Choose posture</button>
+          </div>
+          <div class="picks" id="picks-${t.id}">
+            ${t.picks.map(p => `
+              <div class="pick-row"><div><div class="ticker">${p.ticker}</div><div class="why">${p.why}</div></div><div class="weight">${p.weightPct}%</div></div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    } catch(err){
+      container.innerHTML = `<div class="load-note">Could not load risk tiers: ${err.message}</div>`;
+    }
+  }
+
+  function togglePicks(tierId){
+    document.getElementById('picks-'+tierId).classList.toggle('open');
+  }
+
+  let pendingTier = null;
+  async function openConfirm(tierId){
+    const tier = TIERS.find(t => t.id === tierId);
+    if(!tier) return;
+    pendingTier = tier;
+    document.getElementById('modal-title').textContent = tier.name + ' posture — ' + tier.allocationPct + '% allocation';
+    document.getElementById('modal-sub').textContent = 'Staging trades…';
+    document.getElementById('modal-trades').innerHTML = '';
+    document.getElementById('confirm-send-btn').disabled = true;
+    document.getElementById('overlay').classList.add('open');
+    try{
+      const staged = await api('/api/financial/stage', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ riskTier: tier.name, picks: tier.picks })
+      });
+      document.getElementById('modal-sub').textContent = 'Staged trades below. Nothing executes until you confirm.';
+      document.getElementById('modal-trades').innerHTML = tier.picks.map(p =>
+        `<div class="trade-row"><span>${p.ticker}</span><span class="num">${p.weightPct}%</span></div>`
+      ).join('');
+      document.getElementById('modal-note').textContent = staged.shadow
+        ? 'Shadow mode: no live Robinhood connection yet, so nothing real executes.'
+        : 'Live mode: confirming will send a real trade request to Robinhood.';
+      document.getElementById('confirm-send-btn').disabled = false;
+    } catch(err){
+      document.getElementById('modal-sub').textContent = 'Could not stage trades: ' + err.message;
+      document.getElementById('confirm-send-btn').disabled = true;
+    }
+  }
+  function closeConfirm(){
+    document.getElementById('overlay').classList.remove('open');
+  }
+  async function sendTrade(){
+    if(!pendingTier) return;
+    try{
+      const result = await api('/api/financial/confirm', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ riskTier: pendingTier.name, picks: pendingTier.picks, userConfirmed: true })
+      });
+      closeConfirm();
+      showToast(result.executed
+        ? pendingTier.name + ' posture executed (' + pendingTier.allocationPct + '%).'
+        : pendingTier.name + ' posture staged (' + pendingTier.allocationPct + '%) — shadow mode, no live trade sent.');
+    } catch(err){
+      showToast('Trade not sent: ' + err.message);
+    }
+  }
+
+  document.getElementById('refresh-report').addEventListener('click', async ()=>{
+    showToast('Re-running report…');
+    await loadReport();
+    showToast('Report refreshed.');
+  });
+
+  // ── Work tab ────────────────────────────────────────────────
+  async function loadBriefing(){
+    try{
+      const b = await api('/api/work/briefing');
+      document.getElementById('brief-meetings').textContent = b.meetingsToday;
+      document.getElementById('brief-reply').textContent = b.needReply;
+      document.getElementById('brief-overdue').textContent = b.overdueFollowUps;
+    } catch(err){
+      showToast('Could not load briefing: ' + err.message);
+    }
+  }
+
+  let EMAILS = [];
+  async function loadEmails(){
+    const container = document.getElementById('emails-container');
+    try{
+      const data = await api('/api/work/emails');
+      EMAILS = data.emails;
+      container.innerHTML = EMAILS.map(e => `
+        <div class="email-card">
+          <div class="email-top">
+            <div><div class="email-from">${e.from}</div><div class="email-subject">${e.subject}</div></div>
+            <div class="tag ${e.tag}">${e.tagLabel}</div>
+          </div>
+          <div class="email-blurb">${e.blurb}</div>
+          <div class="email-actions">
+            ${e.suggestedReply
+              ? `<button class="btn" onclick="openDraft('${e.id}')">Draft reply</button>`
+              : ''}
+            <button class="btn ghost" onclick="showToast('${e.suggestedReply ? 'Marked reviewed.' : 'Archived.'}')">${e.suggestedReply ? 'Mark reviewed' : 'Archive'}</button>
+          </div>
+        </div>
+      `).join('');
+    } catch(err){
+      container.innerHTML = `<div class="load-note">Could not load inbox: ${err.message}</div>`;
+    }
+  }
+
+  let pendingDraftEmail = null;
+  function openDraft(emailId){
+    const email = EMAILS.find(e => e.id === emailId);
+    if(!email) return;
+    pendingDraftEmail = email;
+    document.getElementById('draft-title').textContent = 'Draft reply — ' + email.from;
+    document.getElementById('draft-text').value = email.suggestedReply || '';
+    document.getElementById('overlay-draft').classList.add('open');
+  }
+  function closeDraft(){ document.getElementById('overlay-draft').classList.remove('open'); }
+  async function copyDraft(){
+    const text = document.getElementById('draft-text').value;
+    if(navigator.clipboard){ navigator.clipboard.writeText(text).catch(()=>{}); }
+    try{
+      const result = await api('/api/work/draft', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ messageId: pendingDraftEmail ? pendingDraftEmail.id : null, draftText: text })
+      });
+      closeDraft();
+      showToast(result.shadow ? 'Draft copied — paste into Outlook to send.' : 'Draft saved in Outlook — review and send from there.');
+    } catch(err){
+      closeDraft();
+      showToast('Draft not saved: ' + err.message);
+    }
+  }
+
+  async function loadMeetings(){
+    const container = document.getElementById('meetings-container');
+    try{
+      const data = await api('/api/work/meetings');
+      container.innerHTML = data.meetings.map(m => `
+        <div class="meeting-card">
+          <div class="meeting-top"><div class="meeting-time">${m.time}</div></div>
+          <div class="meeting-title">${m.title}</div>
+          <button class="prep-toggle" onclick="this.nextElementSibling.classList.toggle('open')">Show prep ▾</button>
+          <ul class="prep-body">${m.prep.map(p=>`<li>${p}</li>`).join('')}</ul>
+        </div>
+      `).join('');
+    } catch(err){
+      container.innerHTML = `<div class="load-note">Could not load meetings: ${err.message}</div>`;
+    }
+  }
+
+  let pendingCal = null;
+  async function loadCalendarSuggestions(){
+    const container = document.getElementById('cal-container');
+    try{
+      const data = await api('/api/work/calendar/suggestions');
+      if(data.suggestions.length === 0){
+        container.innerHTML = '<div class="load-note">No calendar conflicts right now.</div>';
+        return;
+      }
+      container.innerHTML = data.suggestions.map(s => `
+        <div class="cal-card">
+          <p>${s.detail}</p>
+          <div class="email-actions">
+            <button class="btn ghost" onclick="showToast('Dismissed — no change made.')">Dismiss</button>
+            <button class="btn primary" onclick='openCal(${JSON.stringify(s).replace(/'/g, "&apos;")})'>Review &amp; approve</button>
+          </div>
+        </div>
+      `).join('');
+    } catch(err){
+      container.innerHTML = `<div class="load-note">Could not load suggestions: ${err.message}</div>`;
+    }
+  }
+  function openCal(suggestion){
+    pendingCal = suggestion;
+    document.getElementById('cal-detail').textContent = suggestion.change;
+    document.getElementById('overlay-cal').classList.add('open');
+  }
+  function closeCal(){ document.getElementById('overlay-cal').classList.remove('open'); }
+  async function approveCal(){
+    if(!pendingCal) return;
+    try{
+      const result = await api('/api/work/calendar/confirm', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ eventId: pendingCal.eventId, change: pendingCal.change, userConfirmed: true })
+      });
+      closeCal();
+      showToast(result.applied
+        ? 'Applied: ' + pendingCal.change
+        : 'Approved: ' + pendingCal.change + ' — shadow mode, no live calendar change made.');
+    } catch(err){
+      closeCal();
+      showToast('Change not applied: ' + err.message);
+    }
+  }
+
+  async function loadTasks(){
+    const container = document.getElementById('tasks-container');
+    try{
+      const data = await api('/api/work/tasks');
+      container.innerHTML = data.tasks.map(t => `
+        <div class="task-item ${t.done ? 'done' : ''}" onclick="this.classList.toggle('done')">
+          <div class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></div>
+          <div class="label">${t.label}</div>
+        </div>
+      `).join('');
+    } catch(err){
+      container.innerHTML = `<div class="load-note">Could not load tasks: ${err.message}</div>`;
+    }
+  }
+
+  document.getElementById('rescan-inbox').addEventListener('click', async ()=>{
+    showToast('Re-scanning inbox…');
+    await Promise.all([loadBriefing(), loadEmails()]);
+    showToast('Inbox re-scanned.');
+  });
+
+  // ── Boot ────────────────────────────────────────────────────
+  loadHealth();
+  loadPortfolio();
+  loadReport();
+  loadTiers();
+  loadBriefing();
+  loadEmails();
+  loadMeetings();
+  loadCalendarSuggestions();
+  loadTasks();
+</script>
+
+</body>
+</html>

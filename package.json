@@ -1,0 +1,16 @@
+{
+  "name": "buddy-backend",
+  "version": "0.1.0",
+  "description": "Backend for the Buddy personal assistant app - Financial (Robinhood) and Work (Outlook) tabs, credential-isolated per tab.",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5",
+    "cors": "^2.8.5"
+  }
+}

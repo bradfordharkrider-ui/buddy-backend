@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Buddy</title>
+<style>
+  :root{
+    --ink:#12151C;
+    --panel:#1A1F29;
+    --panel-raised:#20263241;
+    --hair:#2B3140;
+    --gold:#D4A94F;
+    --gold-dim:#8A7239;
+    --rose:#C4554A;
+    --sage:#6E9B7A;
+    --amber-soft:#E8C77A;
+    --text:#EDEFF3;
+    --text-dim:#9CA3B0;
+    --text-faint:#5C6270;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--ink);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    position:relative;
+    padding-bottom:84px;
+  }
+  .num{ font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
+
+  /* Header */
+  header.topbar{
+    padding:22px 20px 14px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:1px solid var(--hair);
+  }
+  .wordmark{
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:-0.02em;
+  }
+  .wordmark span{ color:var(--gold); }
+  .datestamp{ font-size:12px; color:var(--text-faint); }
+
+  main{ padding:20px 20px 8px; }
+
+  .tabpanel{ display:none; animation:fadein .25s ease; }
+  .tabpanel.active{ display:block; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  /* Empty / coming soon state */
+  .empty-state{
+    padding:60px 8px 40px;
+    text-align:left;
+  }
+  .empty-state .glyph{
+    width:40px; height:40px;
+    border:1.5px solid var(--hair);
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:22px;
+    color:var(--text-dim);
+  }
+  .empty-state h2{
+    font-size:20px;
+    font-weight:600;
+    margin-bottom:10px;
+    letter-spacing:-0.01em;
+  }
+  .empty-state p{
+    font-size:14px;
+    line-height:1.55;
+    color:var(--text-dim);
+    max-width:34ch;
+  }
+  .empty-state .tag{
+    display:inline-block;
+    margin-top:20px;
+    font-size:12px;
+    color:var(--text-faint);
+    border-top:1px solid var(--hair);
+    padding-top:14px;
+    width:100%;
+  }
+
+  /* Hero balance panel */
+  .hero{
+    padding:26px 22px;
+    background:linear-gradient(155deg, #1D2432, #171B24);
+    border:1px solid var(--hair);
+    border-radius:4px;
+    margin-bottom:18px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; top:0; left:0; bottom:0; width:3px;
+    background:var(--gold);
+  }
+  .hero-label{ font-size:12px; color:var(--text-dim); margin-bottom:6px; }
+  .hero-figure{ font-size:36px; font-weight:700; letter-spacing:-0.02em; }
+  .hero-sub{ margin-top:8px; font-size:13px; }
+  .hero-sub .up{ color:var(--sage); }
+  .hero-sub .down{ color:var(--rose); }
+  .hero-split{
+    margin-top:18px; padding-top:16px; border-top:1px solid var(--hair);
+    display:flex; gap:24px;
+  }
+  .hero-split div{ flex:1; }
+  .hero-split .k{ font-size:11px; color:var(--text-faint); margin-bottom:3px; }
+  .hero-split .v{ font-size:15px; font-weight:600; }
+
+  /* Section headers */
+  .section-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin:26px 0 12px;
+  }
+  .section-head h3{ font-size:14px; font-weight:600; color:var(--text); }
+  .section-head button.link{
+    background:none; border:none; color:var(--gold); font-size:12.5px;
+    font-family:inherit; cursor:pointer; padding:2px;
+  }
+
+  /* Report card */
+  .report{
+    background:var(--panel);
+    border:1px solid var(--hair);
+    border-radius:4px;
+    padding:16px 18px;
+  }
+  .report-block{ margin-bottom:16px; }
+  .report-block:last-child{ margin-bottom:0; }
+  .report-block h4{
+    font-size:12px; color:var(--gold); font-weight:600;
+    margin-bottom:8px; letter-spacing:0.01em;
+  }
+  .report-block ul{ list-style:none; }
+  .report-block li{
+    font-size:13.5px; line-height:1.55; color:var(--text-dim);
+    padding-left:14px; position:relative; margin-bottom:6px;
+  }
+  .report-block li::before{
+    content:"–"; position:absolute; left:0; color:var(--text-faint);
+  }
+  .report-note{
+    font-size:11px; color:var(--text-faint); margin-top:14px;
+    padding-top:12px; border-top:1px solid var(--hair);
+  }
+
+  /* Buddy opinion banner */
+  .opinion{
+    margin-top:16px;
+    background:rgba(212,169,79,0.08);
+    border:1px solid rgba(212,169,79,0.35);
+    border-radius:4px;
+    padding:14px 16px;
+    display:flex; gap:12px;
+  }
+  .opinion .dot{
+    width:8px; height:8px; border-radius:50%; background:var(--gold);
+    margin-top:6px; flex-shrink:0;
+  }
+  .opinion strong{ font-size:13px; display:block; margin-bottom:4px; }
+  .opinion p{ font-size:13px; line-height:1.5; color:var(--text-dim); }
+
+  /* Risk tiers */
+  .tier{
+    background:var(--panel);
+    border:1px solid var(--hair);
+    border-left:3px solid var(--hair);
+    border-radius:2px;
+    padding:16px 18px;
+    margin-bottom:12px;
+  }
+  .tier.low{ border-left-color:var(--sage); }
+  .tier.medium{ border-left-color:var(--gold); }
+  .tier.high{ border-left-color:var(--rose); }
+  .tier-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+  .tier-name{ font-size:15px; font-weight:700; }
+  .tier.low .tier-name{ color:var(--sage); }
+  .tier.medium .tier-name{ color:var(--amber-soft); }
+  .tier.high .tier-name{ color:var(--rose); }
+  .tier-alloc{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .tier-desc{ font-size:13px; color:var(--text-dim); line-height:1.5; margin-bottom:14px; }
+  .tier-actions{ display:flex; gap:8px; }
+  .btn{
+    font-family:inherit; font-size:12.5px; font-weight:600;
+    padding:9px 14px; border-radius:3px; cursor:pointer;
+    border:1px solid var(--hair); background:transparent; color:var(--text);
+    flex:1; text-align:center;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn.primary{ background:var(--gold); border-color:var(--gold); color:#1A1406; }
+  .btn.ghost{ color:var(--text-dim); }
+
+  .picks{
+    margin-top:14px; padding-top:14px; border-top:1px solid var(--hair);
+    display:none;
+  }
+  .picks.open{ display:block; }
+  .pick-row{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:13px; padding:7px 0;
+  }
+  .pick-row .ticker{ font-weight:700; }
+  .pick-row .why{ color:var(--text-faint); font-size:11.5px; margin-top:2px; }
+  .pick-row .weight{ font-variant-numeric:tabular-nums; color:var(--text-dim); }
+
+  /* Bottom nav */
+  nav.tabbar{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:480px;
+    background:rgba(18,21,28,0.92);
+    backdrop-filter:blur(10px);
+    border-top:1px solid var(--hair);
+    display:flex;
+    padding:8px 4px calc(8px + env(safe-area-inset-bottom));
+  }
+  nav.tabbar button{
+    flex:1; background:none; border:none; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    padding:6px 2px; cursor:pointer; color:var(--text-faint);
+  }
+  nav.tabbar button svg{ width:20px; height:20px; }
+  nav.tabbar button span{ font-size:10px; font-weight:600; }
+  nav.tabbar button.active{ color:var(--gold); }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(8,9,12,0.7);
+    display:none; align-items:flex-end; justify-content:center; z-index:50;
+  }
+  .overlay.open{ display:flex; }
+  .modal{
+    background:var(--panel); width:100%; max-width:480px;
+    border-radius:14px 14px 0 0; border:1px solid var(--hair); border-bottom:none;
+    padding:22px 22px calc(22px + env(safe-area-inset-bottom));
+    animation:slideup .22s ease;
+  }
+  @keyframes slideup{ from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+  .modal h3{ font-size:17px; margin-bottom:4px; }
+  .modal .sub{ font-size:12.5px; color:var(--text-faint); margin-bottom:18px; }
+  .modal .trade-row{
+    display:flex; justify-content:space-between; font-size:13.5px;
+    padding:9px 0; border-bottom:1px solid var(--hair);
+  }
+  .modal .trade-row:last-of-type{ border-bottom:none; }
+  .modal-actions{ display:flex; gap:10px; margin-top:20px; }
+  .banner-note{
+    margin-top:16px; font-size:11.5px; color:var(--text-faint);
+    line-height:1.5; background:rgba(255,255,255,0.03);
+    border-radius:4px; padding:10px 12px;
+  }
+
+  .toast{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%) translateY(-60px);
+    background:var(--panel); border:1px solid var(--hair);
+    padding:11px 18px; border-radius:6px; font-size:13px;
+    max-width:400px; z-index:60; transition:transform .3s ease;
+  }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+
+  /* Work tab: briefing strip */
+  .brief-strip{
+    display:flex; gap:10px; margin-top:14px; padding-top:16px; border-top:1px solid var(--hair);
+  }
+  .brief-item{ flex:1; }
+  .brief-item .v{ font-size:19px; font-weight:700; }
+  .brief-item .k{ font-size:11px; color:var(--text-faint); margin-top:2px; }
+
+  /* Email cards */
+  .email-card{
+    background:var(--panel); border:1px solid var(--hair); border-radius:4px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .email-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:6px; }
+  .email-from{ font-size:13.5px; font-weight:600; }
+  .email-subject{ font-size:13px; color:var(--text-dim); margin-bottom:8px; }
+  .tag{
+    font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:20px;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .tag.urgent{ background:rgba(196,85,74,0.15); color:var(--rose); }
+  .tag.waiting{ background:rgba(212,169,79,0.15); color:var(--gold); }
+  .tag.low{ background:rgba(156,163,176,0.12); color:var(--text-faint); }
+  .email-blurb{ font-size:13px; color:var(--text-dim); line-height:1.5; margin-bottom:12px; }
+  .email-actions{ display:flex; gap:8px; }
+
+  /* Meeting / prep cards */
+  .meeting-card{
+    background:var(--panel); border:1px solid var(--hair); border-radius:4px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .meeting-top{ display:flex; justify-content:space-between; align-items:baseline; }
+  .meeting-time{ font-size:12.5px; color:var(--gold); font-weight:600; }
+  .meeting-title{ font-size:14px; font-weight:600; margin-top:2px; }
+  .prep-toggle{
+    background:none; border:none; color:var(--text-faint); font-family:inherit;
+    font-size:12px; cursor:pointer; margin-top:8px; padding:0;
+  }
+  .prep-body{ display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--hair); }
+  .prep-body.open{ display:block; }
+  .prep-body li{ font-size:12.5px; color:var(--text-dim); line-height:1.5; margin-bottom:5px; padding-left:12px; position:relative; }
+  .prep-body li::before{ content:"–"; position:absolute; left:0; color:var(--text-faint); }
+
+  /* Calendar suggestion cards */
+  .cal-card{
+    background:rgba(212,169,79,0.06); border:1px solid rgba(212,169,79,0.3); border-radius:4px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .cal-card p{ font-size:13px; color:var(--text-dim); line-height:1.5; margin-bottom:12px; }
+  .cal-card .email-actions{ display:flex; gap:8px; }
+
+  /* Task list */
+  .task-item{
+    display:flex; align-items:flex-start; gap:10px;
+    padding:10px 0; border-bottom:1px solid var(--hair);
+    font-size:13.5px; cursor:pointer;
+  }
+  .task-item:last-child{ border-bottom:none; }
+  .task-item .box{
+    width:16px; height:16px; border:1.5px solid var(--text-faint); border-radius:3px;
+    flex-shrink:0; margin-top:1px; display:flex; align-items:center; justify-content:center;
+  }
+  .task-item.done .box{ background:var(--sage); border-color:var(--sage); }
+  .task-item.done .label{ color:var(--text-faint); text-decoration:line-through; }
+  .task-item .box svg{ width:11px; height:11px; display:none; color:#0F1811; }
+  .task-item.done .box svg{ display:block; }
+
+  textarea.draft{
+    width:100%; min-height:120px; background:var(--ink); border:1px solid var(--hair);
+    border-radius:4px; color:var(--text); font-family:inherit; font-size:13.5px;
+    padding:12px; line-height:1.5; resize:vertical;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wordmark">Buddy<span>.</span></div>
+  <div class="datestamp" id="datestamp"></div>
+</header>
+
+<main>
+
+  <!-- FINANCIAL TAB -->
+  <section class="tabpanel active" id="tab-financial">
+
+    <div class="hero">
+      <div class="hero-label">Agentic account (Robinhood)</div>
+      <div class="hero-figure num" id="acct-balance">$3,000.00</div>
+      <div class="hero-sub"><span class="up" id="acct-change">▲ $42.10 (1.4%) today</span></div>
+      <div class="hero-split">
+        <div>
+          <div class="k">Buddy-managed</div>
+          <div class="v num" id="buddy-side">$3,000.00</div>
+        </div>
+        <div>
+          <div class="k">Self-managed (yours)</div>
+          <div class="v num">$3,000.00</div>
+        </div>
+        <div>
+          <div class="k">Funding rule</div>
+          <div class="v">50% auto</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h3>Monday check-in</h3>
+      <button class="link" id="refresh-report">Re-run report</button>
+    </div>
+
+    <div class="report">
+      <div class="report-block">
+        <h4>Macro scan</h4>
+        <ul>
+          <li>Dollar index softened slightly this week — tends to favor multinational exporters over pure domestic plays.</li>
+          <li>Semiconductor export policy chatter continues; sector volatility elevated into next week.</li>
+        </ul>
+      </div>
+      <div class="report-block">
+        <h4>Headline sweep</h4>
+        <ul>
+          <li>Two names on your watchlist mentioned in earnings-preview coverage this week.</li>
+          <li>No material negative coverage flagged on current holdings.</li>
+        </ul>
+      </div>
+      <div class="report-block">
+        <h4>IPO / options screen</h4>
+        <ul>
+          <li>One mid-cap IPO priced this week, still inside lockup-risk window — watching, not suggesting yet.</li>
+          <li>Elevated implied volatility on a handful of large-caps ahead of earnings — flagged in High tier.</li>
+        </ul>
+      </div>
+      <div class="report-block">
+        <h4>Crypto &amp; AI watch</h4>
+        <ul>
+          <li>AI infrastructure names showing renewed relative strength vs. broader market this week.</li>
+        </ul>
+      </div>
+      <div class="report-note">Sample data for prototype purposes — live version connects via Robinhood's Trading MCP + real-time news sources.</div>
+    </div>
+
+    <div class="opinion">
+      <div class="dot"></div>
+      <div>
+        <strong>Buddy's take</strong>
+        <p>Conditions this week lean slightly favorable for the medium-risk posture — relative calm in your current holdings' sector, and no red flags in the headline sweep. Still your call either way.</p>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h3>Choose this week's posture</h3>
+    </div>
+
+    <!-- LOW -->
+    <div class="tier low">
+      <div class="tier-top">
+        <div class="tier-name">Low risk</div>
+        <div class="tier-alloc num">35%</div>
+      </div>
+      <div class="tier-desc">Capital preservation leaning. Broad, liquid, lower-volatility names. Modest realistic upside, minimal drawdown risk.</div>
+      <div class="tier-actions">
+        <button class="btn" onclick="togglePicks('low')">Buddy's Picks</button>
+        <button class="btn primary" onclick="openConfirm('Low risk', '35%')">Choose posture</button>
+      </div>
+      <div class="picks" id="picks-low">
+        <div class="pick-row"><div><div class="ticker">VTI</div><div class="why">Broad market anchor</div></div><div class="weight">40%</div></div>
+        <div class="pick-row"><div><div class="ticker">JNJ</div><div class="why">Low-volatility defensive</div></div><div class="weight">30%</div></div>
+        <div class="pick-row"><div><div class="ticker">KO</div><div class="why">Stable dividend payer</div></div><div class="weight">30%</div></div>
+      </div>
+    </div>
+
+    <!-- MEDIUM -->
+    <div class="tier medium">
+      <div class="tier-top">
+        <div class="tier-name">Medium risk</div>
+        <div class="tier-alloc num">45%</div>
+      </div>
+      <div class="tier-desc">Balanced growth. Mix of established growth names and sector exposure with room to move both directions.</div>
+      <div class="tier-actions">
+        <button class="btn" onclick="togglePicks('medium')">Buddy's Picks</button>
+        <button class="btn primary" onclick="openConfirm('Medium risk', '45%')">Choose posture</button>
+      </div>
+      <div class="picks" id="picks-medium">
+        <div class="pick-row"><div><div class="ticker">MSFT</div><div class="why">AI infra relative strength</div></div><div class="weight">35%</div></div>
+        <div class="pick-row"><div><div class="ticker">AVGO</div><div class="why">Semis, elevated but liquid</div></div><div class="weight">30%</div></div>
+        <div class="pick-row"><div><div class="ticker">QQQ</div><div class="why">Growth basket, diversified</div></div><div class="weight">35%</div></div>
+      </div>
+    </div>
+
+    <!-- HIGH -->
+    <div class="tier high">
+      <div class="tier-top">
+        <div class="tier-name">High risk</div>
+        <div class="tier-alloc num">20%</div>
+      </div>
+      <div class="tier-desc">Aggressive. Higher expected swings in both directions — sized smaller on purpose. Real downside exposure, not just upside.</div>
+      <div class="tier-actions">
+        <button class="btn" onclick="togglePicks('high')">Buddy's Picks</button>
+        <button class="btn primary" onclick="openConfirm('High risk', '20%')">Choose posture</button>
+      </div>
+      <div class="picks" id="picks-high">
+        <div class="pick-row"><div><div class="ticker">SMCI</div><div class="why">High-vol earnings play</div></div><div class="weight">30%</div></div>
+        <div class="pick-row"><div><div class="ticker">COIN</div><div class="why">Crypto-adjacent momentum</div></div><div class="weight">35%</div></div>
+        <div class="pick-row"><div><div class="ticker">Short-dated call, single-name</div><div class="why">Earnings-week vol setup</div></div><div class="weight">35%</div></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- WORK TAB -->
+  <section class="tabpanel" id="tab-work">
+
+    <div class="hero">
+      <div class="hero-label">Outlook · Work</div>
+      <div class="hero-figure" style="font-size:22px;">Tuesday, here's your day</div>
+      <div class="brief-strip">
+        <div class="brief-item"><div class="v">3</div><div class="k">Meetings today</div></div>
+        <div class="brief-item"><div class="v">2</div><div class="k">Need a reply</div></div>
+        <div class="brief-item"><div class="v">1</div><div class="k">Overdue follow-up</div></div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h3>Inbox triage</h3>
+      <button class="link" onclick="showToast('Inbox re-scanned — prototype uses sample data until Outlook is connected.')">Re-scan</button>
+    </div>
+
+    <div class="email-card">
+      <div class="email-top">
+        <div><div class="email-from">Dana Reyes</div><div class="email-subject">Q3 budget review — need your sign-off</div></div>
+        <div class="tag urgent">Time-sensitive</div>
+      </div>
+      <div class="email-blurb">Asking you to confirm the revised Q3 numbers before she sends to finance — she needs an answer by end of day.</div>
+      <div class="email-actions">
+        <button class="btn" onclick="openDraft('Dana Reyes — Q3 budget review', 'Hi Dana,\\n\\nThanks for sending this over — the revised numbers look right to me. Go ahead and send to finance.\\n\\nBest,')">Draft reply</button>
+        <button class="btn ghost" onclick="showToast('Marked reviewed.')">Mark reviewed</button>
+      </div>
+    </div>
+
+    <div class="email-card">
+      <div class="email-top">
+        <div><div class="email-from">Marcus Webb</div><div class="email-subject">Re: vendor contract redline</div></div>
+        <div class="tag waiting">Waiting on you</div>
+      </div>
+      <div class="email-blurb">Sent back the contract with two clauses redlined last Thursday — hasn't heard from you since.</div>
+      <div class="email-actions">
+        <button class="btn" onclick="openDraft('Marcus Webb — vendor contract redline', 'Hi Marcus,\\n\\nApologies for the delay — reviewed your redlines and both look reasonable to me. Let\\'s move forward with the updated version.\\n\\nThanks,')">Draft reply</button>
+        <button class="btn ghost" onclick="showToast('Marked reviewed.')">Mark reviewed</button>
+      </div>
+    </div>
+
+    <div class="email-card">
+      <div class="email-top">
+        <div><div class="email-from">Internal Newsletter</div><div class="email-subject">This week at Acme</div></div>
+        <div class="tag low">Low priority</div>
+      </div>
+      <div class="email-blurb">Company-wide digest, no action needed.</div>
+      <div class="email-actions">
+        <button class="btn ghost" onclick="showToast('Archived.')">Archive</button>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h3>Today's meetings</h3>
+    </div>
+
+    <div class="meeting-card">
+      <div class="meeting-top"><div class="meeting-time">10:00 AM</div></div>
+      <div class="meeting-title">Budget sync w/ Dana Reyes</div>
+      <button class="prep-toggle" onclick="this.nextElementSibling.classList.toggle('open')">Show prep ▾</button>
+      <ul class="prep-body">
+        <li>Last thread: Dana sent revised Q3 numbers, awaiting your sign-off (see inbox above).</li>
+        <li>Prior meeting notes flagged marketing spend as the open question — likely comes up again.</li>
+      </ul>
+    </div>
+
+    <div class="meeting-card">
+      <div class="meeting-top"><div class="meeting-time">1:00 PM</div></div>
+      <div class="meeting-title">Client call — Northbridge renewal</div>
+      <button class="prep-toggle" onclick="this.nextElementSibling.classList.toggle('open')">Show prep ▾</button>
+      <ul class="prep-body">
+        <li>Renewal contract currently with legal for redlines — not expected to close on this call.</li>
+        <li>Client's last email asked about onboarding timeline for two new seats.</li>
+      </ul>
+    </div>
+
+    <div class="meeting-card">
+      <div class="meeting-top"><div class="meeting-time">2:00 PM</div></div>
+      <div class="meeting-title">Internal team sync</div>
+      <button class="prep-toggle" onclick="this.nextElementSibling.classList.toggle('open')">Show prep ▾</button>
+      <ul class="prep-body">
+        <li>Overlaps with the Northbridge call running long — see calendar suggestion below.</li>
+      </ul>
+    </div>
+
+    <div class="section-head">
+      <h3>Calendar suggestions</h3>
+    </div>
+
+    <div class="cal-card">
+      <p><strong>2:00 PM team sync</strong> overlaps if the 1:00 PM client call runs long. Suggest moving the sync to 2:30 PM.</p>
+      <div class="email-actions">
+        <button class="btn ghost" onclick="showToast('Dismissed — no change made.')">Dismiss</button>
+        <button class="btn primary" onclick="openCal('Move 2:00 PM team sync to 2:30 PM')">Review &amp; approve</button>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h3>Follow-ups &amp; tasks</h3>
+    </div>
+
+    <div class="report" style="padding:6px 18px;">
+      <div class="task-item" onclick="this.classList.toggle('done')">
+        <div class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></div>
+        <div class="label">Send Marcus the finalized contract by Friday</div>
+      </div>
+      <div class="task-item" onclick="this.classList.toggle('done')">
+        <div class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></div>
+        <div class="label">Confirm final budget numbers with Dana</div>
+      </div>
+      <div class="task-item done" onclick="this.classList.toggle('done')">
+        <div class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></div>
+        <div class="label">Reply to Northbridge onboarding question</div>
+      </div>
+    </div>
+    <div class="report-note" style="margin-top:8px;">Sample data for prototype purposes — live version reads directly from Outlook via Microsoft Graph.</div>
+
+  </section>
+
+  <!-- SOCIAL TAB -->
+  <section class="tabpanel" id="tab-social">
+    <div class="empty-state">
+      <div class="glyph">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c1-3.5 4-5.5 7-5.5s6 2 7 5.5"/></svg>
+      </div>
+      <h2>Social life isn't built yet</h2>
+      <p>Room for the parts of your life you haven't scoped yet — plans, relationships, whatever you decide belongs here.</p>
+      <div class="tag">Design this one whenever you're ready.</div>
+    </div>
+  </section>
+
+  <!-- HEALTH TAB -->
+  <section class="tabpanel" id="tab-health">
+    <div class="empty-state">
+      <div class="glyph">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.8 8.6c0 4.2-8.8 10-8.8 10s-8.8-5.8-8.8-10a4.6 4.6 0 0 1 8.8-2 4.6 4.6 0 0 1 8.8 2Z"/></svg>
+      </div>
+      <h2>Health isn't built yet</h2>
+      <p>Reserved for whatever you want tracked here — fitness, sleep, appointments. Its own credentials, same isolation rule.</p>
+      <div class="tag">Design this one whenever you're ready.</div>
+    </div>
+  </section>
+
+  <!-- WORKSHOP TAB -->
+  <section class="tabpanel" id="tab-workshop">
+    <div class="empty-state">
+      <div class="glyph">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6Z"/></svg>
+      </div>
+      <h2>Workshop isn't built yet</h2>
+      <p>Space for projects, tools, and whatever "workshop" means for your life — that's yours to define.</p>
+      <div class="tag">Design this one whenever you're ready.</div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button class="active" data-tab="financial">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v6h-6"/></svg>
+    <span>Financial</span>
+  </button>
+  <button data-tab="work">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    <span>Work</span>
+  </button>
+  <button data-tab="social">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c1-3.5 4-5.5 7-5.5s6 2 7 5.5"/></svg>
+    <span>Social</span>
+  </button>
+  <button data-tab="health">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.8 8.6c0 4.2-8.8 10-8.8 10s-8.8-5.8-8.8-10a4.6 4.6 0 0 1 8.8-2 4.6 4.6 0 0 1 8.8 2Z"/></svg>
+    <span>Health</span>
+  </button>
+  <button data-tab="workshop">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6Z"/></svg>
+    <span>Workshop</span>
+  </button>
+</nav>
+
+<!-- Confirm modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modal-title">Confirm posture</h3>
+    <div class="sub" id="modal-sub">Review before anything is sent to Robinhood.</div>
+    <div id="modal-trades"></div>
+    <div class="banner-note">Prototype mode: no live Robinhood connection yet, so nothing real executes. In the built version, this step sends staged trades to your Agentic account for final confirmation there too.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn primary" onclick="sendTrade()">Confirm &amp; send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Draft reply modal -->
+<div class="overlay" id="overlay-draft">
+  <div class="modal">
+    <h3 id="draft-title">Draft reply</h3>
+    <div class="sub">Edit however you like — Buddy never sends this for you.</div>
+    <textarea class="draft" id="draft-text"></textarea>
+    <div class="banner-note">Prototype mode: copy this draft and paste it into Outlook yourself. In the built version, this opens directly as a draft in your Outlook account.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeDraft()">Cancel</button>
+      <button class="btn primary" onclick="copyDraft()">Copy draft</button>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar suggestion modal -->
+<div class="overlay" id="overlay-cal">
+  <div class="modal">
+    <h3>Approve calendar change</h3>
+    <div class="sub" id="cal-detail"></div>
+    <div class="banner-note">Prototype mode: this won't touch a real calendar yet. In the built version, approving here writes the change to Outlook via Microsoft Graph.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeCal()">Cancel</button>
+      <button class="btn primary" onclick="approveCal()">Approve change</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // Tab switching
+  const buttons = document.querySelectorAll('nav.tabbar button');
+  buttons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      buttons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tabpanel').forEach(p=>p.classList.remove('active'));
+      document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Date
+  document.getElementById('datestamp').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'});
+
+  function togglePicks(tier){
+    document.getElementById('picks-'+tier).classList.toggle('open');
+  }
+
+  let pendingTier = null, pendingAlloc = null;
+  function openConfirm(name, alloc){
+    pendingTier = name; pendingAlloc = alloc;
+    document.getElementById('modal-title').textContent = name + ' posture — ' + alloc + ' allocation';
+    document.getElementById('modal-sub').textContent = 'Staged trades below. Nothing executes until you confirm.';
+    const tierKey = name.toLowerCase().split(' ')[0];
+    const rows = Array.from(document.querySelectorAll('#picks-'+tierKey+' .pick-row')).map(r=>{
+      const ticker = r.querySelector('.ticker').textContent;
+      const weight = r.querySelector('.weight').textContent;
+      return `<div class="trade-row"><span>${ticker}</span><span class="num">${weight}</span></div>`;
+    }).join('');
+    document.getElementById('modal-trades').innerHTML = rows || '<div class="trade-row"><span>Allocation staged, picks not expanded</span></div>';
+    document.getElementById('overlay').classList.add('open');
+  }
+  function closeConfirm(){
+    document.getElementById('overlay').classList.remove('open');
+  }
+  function sendTrade(){
+    closeConfirm();
+    showToast(pendingTier + ' posture staged (' + pendingAlloc + ') — prototype only, no live trade sent.');
+  }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 3200);
+  }
+
+  document.getElementById('refresh-report').addEventListener('click', ()=>{
+    showToast('Report re-run — prototype uses sample data until live news/MCP feed is connected.');
+  });
+
+  // Draft reply modal
+  function openDraft(title, text){
+    document.getElementById('draft-title').textContent = 'Draft reply — ' + title.split(' — ')[0];
+    document.getElementById('draft-text').value = text;
+    document.getElementById('overlay-draft').classList.add('open');
+  }
+  function closeDraft(){ document.getElementById('overlay-draft').classList.remove('open'); }
+  function copyDraft(){
+    const text = document.getElementById('draft-text').value;
+    if(navigator.clipboard){ navigator.clipboard.writeText(text).catch(()=>{}); }
+    closeDraft();
+    showToast('Draft copied — paste into Outlook to send.');
+  }
+
+  // Calendar suggestion modal
+  let pendingCal = null;
+  function openCal(detail){
+    pendingCal = detail;
+    document.getElementById('cal-detail').textContent = detail;
+    document.getElementById('overlay-cal').classList.add('open');
+  }
+  function closeCal(){ document.getElementById('overlay-cal').classList.remove('open'); }
+  function approveCal(){
+    closeCal();
+    showToast('Approved: ' + pendingCal + ' — prototype only, no live calendar change made.');
+  }
+</script>
+
+</body>
+</html>
