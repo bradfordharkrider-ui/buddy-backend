@@ -373,6 +373,7 @@
       <div class="hero-label">Agentic account (Robinhood)</div>
       <div class="hero-figure num" id="acct-balance">—</div>
       <div class="hero-sub"><span id="acct-change">—</span></div>
+      <div class="hero-sub" id="acct-asof" style="opacity:0.6;font-size:0.85em;"></div>
       <div class="hero-split">
         <div>
           <div class="k">Buddy-managed</div>
@@ -634,6 +635,12 @@
       document.getElementById('buddy-side').textContent = fmtUSD(p.buddyManaged);
       document.getElementById('self-side').textContent = fmtUSD(p.selfManaged);
       document.getElementById('funding-rule').textContent = p.fundingRulePct + '% auto';
+      const asOf = document.getElementById('acct-asof');
+      if(!p.shadow && p.generatedAt){
+        asOf.textContent = 'Real data, as of ' + new Date(p.generatedAt).toLocaleString() + ' — not live-updating; ask Claude to refresh.';
+      } else {
+        asOf.textContent = '';
+      }
     } catch(err){
       document.getElementById('acct-balance').textContent = 'Unavailable';
       showToast('Could not load portfolio: ' + err.message);

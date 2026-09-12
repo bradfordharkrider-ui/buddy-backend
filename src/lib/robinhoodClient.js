@@ -3,16 +3,39 @@
 // or call Robinhood's MCP. Do not import this from work.js or any
 // non-financial route - that's what keeps the tabs isolated.
 //
-// Setup: Robinhood's Trading MCP lives at ROBINHOOD_MCP_URL and expects
-// your dedicated Agentic sub-account to already be connected on
-// Robinhood's side (done through their app, not through this code).
-// See README "Connecting Robinhood" for the account setup steps.
+// Robinhood's Agentic Trading connects to a Claude (or other AI platform)
+// account directly, not to an arbitrary backend - there's no generic
+// MCP URL/token Robinhood hands out for a custom Node client to call.
+// So this server has no live connection of its own. Real portfolio/position
+// reads instead come from data/robinhood-snapshot.json, a point-in-time
+// pull done by asking Claude (which already has that account connected)
+// to fetch fresh data and rewrite the snapshot file. Re-run that whenever
+// the numbers look stale - see README "Connecting Robinhood".
 //
-// TODO: replace these stubs with real MCP calls once your Agentic
-// account is connected. Keep SHADOW_MODE=true until you've verified
-// getPortfolio() returns real data correctly.
+// Trade execution stays simulated regardless (see executeTrades below) -
+// that's a hard rule, not a TODO: placing a real trade always has to be a
+// human action taken directly in the Robinhood app, never something an AI
+// executes on the user's behalf, however it's wired up.
+
+import { readFile } from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SNAPSHOT_PATH = path.join(__dirname, '..', '..', 'data', 'robinhood-snapshot.json');
 
 const SHADOW_MODE = process.env.SHADOW_MODE === 'true';
+const READ_LIVE = process.env.ROBINHOOD_READ_LIVE === 'true';
+
+async function loadSnapshot() {
+  try {
+    const raw = await readFile(SNAPSHOT_PATH, 'utf-8');
+    return JSON.parse(raw);
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
+}
 
 const RISK_TIERS = [
   {
@@ -51,6 +74,13 @@ const RISK_TIERS = [
 ];
 
 export async function getPortfolio() {
+  if (READ_LIVE) {
+    const snapshot = await loadSnapshot();
+    if (snapshot) {
+      const { positions, ...portfolio } = snapshot;
+      return { ...portfolio, shadow: false, live: false };
+    }
+  }
   if (SHADOW_MODE) {
     return {
       shadow: true,
@@ -60,11 +90,10 @@ export async function getPortfolio() {
       buddyManaged: 3000.0,
       selfManaged: 3000.0,
       fundingRulePct: 50,
-      note: 'Shadow mode - replace with a real MCP call to ROBINHOOD_MCP_URL',
+      note: 'Shadow mode - sample data. Set ROBINHOOD_READ_LIVE=true and add data/robinhood-snapshot.json for real numbers.',
     };
   }
-  // TODO: real MCP call to fetch account/portfolio data
-  throw new Error('Live Robinhood connection not yet implemented.');
+  throw new Error('No portfolio data available: ROBINHOOD_READ_LIVE is off and SHADOW_MODE is off.');
 }
 
 export async function getMarketReport() {
