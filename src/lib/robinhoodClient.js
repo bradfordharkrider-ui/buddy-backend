@@ -23,13 +23,14 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SNAPSHOT_PATH = path.join(__dirname, '..', '..', 'data', 'robinhood-snapshot.json');
+const MARKET_SNAPSHOT_PATH = path.join(__dirname, '..', '..', 'data', 'market-snapshot.json');
 
 const SHADOW_MODE = process.env.SHADOW_MODE === 'true';
 const READ_LIVE = process.env.ROBINHOOD_READ_LIVE === 'true';
 
-async function loadSnapshot() {
+async function loadJsonSnapshot(filePath) {
   try {
-    const raw = await readFile(SNAPSHOT_PATH, 'utf-8');
+    const raw = await readFile(filePath, 'utf-8');
     return JSON.parse(raw);
   } catch (err) {
     if (err.code === 'ENOENT') return null;
@@ -37,6 +38,15 @@ async function loadSnapshot() {
   }
 }
 
+const loadSnapshot = () => loadJsonSnapshot(SNAPSHOT_PATH);
+const loadMarketSnapshot = () => loadJsonSnapshot(MARKET_SNAPSHOT_PATH);
+
+// These are illustrative example baskets, not personalized recommendations -
+// Claude can't give investment advice, so it never picks or swaps tickers
+// here based on your situation. When ROBINHOOD_READ_LIVE is on, each pick
+// gets a real current quote merged in (see getRiskTiers) so the numbers are
+// factual, but the picks themselves stay fixed and are for you to evaluate
+// and act on (or not) yourself.
 const RISK_TIERS = [
   {
     id: 'low',
@@ -97,6 +107,28 @@ export async function getPortfolio() {
 }
 
 export async function getMarketReport() {
+  if (READ_LIVE) {
+    const market = await loadMarketSnapshot();
+    if (market) {
+      const quoteLines = Object.entries(market.quotes).map(([ticker, q]) => {
+        const up = q.todayChangePct >= 0;
+        return `${ticker}: $${q.price.toFixed(2)} (${up ? '+' : ''}${q.todayChangePct.toFixed(2)}% today)`;
+      });
+      return {
+        shadow: false,
+        generatedAt: market.generatedAt,
+        blocks: [
+          {
+            title: 'Real quotes (risk-tier picks)',
+            items: quoteLines,
+          },
+        ],
+        opinion:
+          "This is factual market data, not a recommendation - Buddy doesn't have a take on which posture is favorable this week. Review the numbers and decide your own posture; log anything you actually trade in Robinhood via the holdings tool so these numbers stay accurate.",
+        note: 'Real quotes as of the snapshot time above - not live-updating. Ask Claude to refresh data/market-snapshot.json for current prices.',
+      };
+    }
+  }
   if (SHADOW_MODE) {
     return {
       shadow: true,
@@ -139,6 +171,25 @@ export async function getMarketReport() {
 }
 
 export async function getRiskTiers() {
+  if (READ_LIVE) {
+    const market = await loadMarketSnapshot();
+    if (market) {
+      const tiers = RISK_TIERS.map((tier) => ({
+        ...tier,
+        picks: tier.picks.map((pick) => {
+          const quote = market.quotes[pick.ticker];
+          return quote
+            ? { ...pick, currentPrice: quote.price, todayChangePct: quote.todayChangePct }
+            : pick;
+        }),
+      }));
+      return {
+        shadow: false,
+        tiers,
+        note: "Picks are illustrative examples with real current prices, not personalized recommendations - Buddy doesn't pick investments for you.",
+      };
+    }
+  }
   return { shadow: SHADOW_MODE, tiers: RISK_TIERS };
 }
 

@@ -657,7 +657,7 @@
           <h4>${b.title}</h4>
           <ul>${b.items.map(i=>`<li>${i}</li>`).join('')}</ul>
         </div>
-      `).join('') + `<div class="report-note">${report.shadow ? 'Shadow mode — sample data. Live version connects via Robinhood\'s Trading MCP + real-time news sources.' : 'Live market report.'}</div>`;
+      `).join('') + `<div class="report-note">${report.shadow ? 'Shadow mode — sample data. Live version connects via Robinhood\'s Trading MCP + real-time news sources.' : report.note}</div>`;
       document.getElementById('opinion-text').textContent = report.opinion;
       opinionCard.style.display = 'flex';
     } catch(err){
@@ -685,7 +685,7 @@
           </div>
           <div class="picks" id="picks-${t.id}">
             ${t.picks.map(p => `
-              <div class="pick-row"><div><div class="ticker">${p.ticker}</div><div class="why">${p.why}</div></div><div class="weight">${p.weightPct}%</div></div>
+              <div class="pick-row"><div><div class="ticker">${p.ticker}</div><div class="why">${p.why}${p.currentPrice != null ? ` — $${p.currentPrice.toFixed(2)} (${p.todayChangePct >= 0 ? '+' : ''}${p.todayChangePct.toFixed(2)}%)` : ''}</div></div><div class="weight">${p.weightPct}%</div></div>
             `).join('')}
           </div>
         </div>
