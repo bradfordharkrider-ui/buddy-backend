@@ -22,24 +22,33 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SNAPSHOT_PATH = path.join(__dirname, '..', '..', 'data', 'robinhood-snapshot.json');
-const MARKET_SNAPSHOT_PATH = path.join(__dirname, '..', '..', 'data', 'market-snapshot.json');
+const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+
+// Render's Secret Files can't hold a nested path (no "/" allowed in the
+// filename), so they land flat at /etc/secrets/<filename> instead of
+// data/<filename>. Try that first, then fall back to the local data/
+// directory for local dev, where the file has a normal relative path.
+function candidatePaths(filename) {
+  return [path.join('/etc/secrets', filename), path.join(DATA_DIR, filename)];
+}
 
 const SHADOW_MODE = process.env.SHADOW_MODE === 'true';
 const READ_LIVE = process.env.ROBINHOOD_READ_LIVE === 'true';
 
-async function loadJsonSnapshot(filePath) {
-  try {
-    const raw = await readFile(filePath, 'utf-8');
-    return JSON.parse(raw);
-  } catch (err) {
-    if (err.code === 'ENOENT') return null;
-    throw err;
+async function loadJsonSnapshot(filename) {
+  for (const filePath of candidatePaths(filename)) {
+    try {
+      const raw = await readFile(filePath, 'utf-8');
+      return JSON.parse(raw);
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
   }
+  return null;
 }
 
-const loadSnapshot = () => loadJsonSnapshot(SNAPSHOT_PATH);
-const loadMarketSnapshot = () => loadJsonSnapshot(MARKET_SNAPSHOT_PATH);
+const loadSnapshot = () => loadJsonSnapshot('robinhood-snapshot.json');
+const loadMarketSnapshot = () => loadJsonSnapshot('market-snapshot.json');
 
 // These are illustrative example baskets, not personalized recommendations -
 // Claude can't give investment advice, so it never picks or swaps tickers
