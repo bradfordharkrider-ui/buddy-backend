@@ -49,6 +49,26 @@ async function loadJsonSnapshot(filename) {
 
 const loadSnapshot = () => loadJsonSnapshot('robinhood-snapshot.json');
 const loadMarketSnapshot = () => loadJsonSnapshot('market-snapshot.json');
+const loadFundamentalsSnapshot = () => loadJsonSnapshot('fundamentals-snapshot.json');
+
+// Fixed-list research data (tier tickers + your holdings) - same manual
+// pull/refresh model as the portfolio and market snapshots above. For an
+// arbitrary user-searched ticker, see lib/publicMarketData.js instead,
+// which calls a free public API directly since Claude isn't in the loop
+// for an on-demand search.
+export async function getFundamentals(ticker) {
+  const snapshot = await loadFundamentalsSnapshot();
+  if (!snapshot) return null;
+  const entry = snapshot.fundamentals[ticker?.toUpperCase()];
+  if (!entry) return null;
+  return { ticker: ticker.toUpperCase(), generatedAt: snapshot.generatedAt, ...entry };
+}
+
+export async function getAllFundamentals() {
+  const snapshot = await loadFundamentalsSnapshot();
+  if (!snapshot) return { generatedAt: null, fundamentals: {} };
+  return snapshot;
+}
 
 // These are illustrative example baskets, not personalized recommendations -
 // Claude can't give investment advice, so it never picks or swaps tickers

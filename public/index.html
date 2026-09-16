@@ -117,8 +117,8 @@
   .hero-label{ font-size:12px; color:var(--text-dim); margin-bottom:6px; }
   .hero-figure{ font-size:36px; font-weight:700; letter-spacing:-0.02em; }
   .hero-sub{ margin-top:8px; font-size:13px; }
-  .hero-sub .up{ color:var(--sage); }
-  .hero-sub .down{ color:var(--rose); }
+  .hero-sub .up, .up{ color:var(--sage); }
+  .hero-sub .down, .down{ color:var(--rose); }
   .hero-split{
     margin-top:18px; padding-top:16px; border-top:1px solid var(--hair);
     display:flex; gap:24px;
@@ -221,6 +221,27 @@
     font-size:13px; padding:7px 0;
   }
   .pick-row .ticker{ font-weight:700; }
+
+  /* Research */
+  .search-row{ display:flex; gap:8px; margin-bottom:14px; }
+  .search-row input{
+    flex:1; font-family:inherit; font-size:14px; color:var(--text);
+    background:var(--panel); border:1px solid var(--hair); border-radius:3px;
+    padding:10px 12px; min-width:0;
+  }
+  .search-row input:focus{ outline:none; border-color:var(--gold-dim); }
+  .search-row .btn{ flex:0 0 auto; padding:9px 16px; }
+  .research-card{
+    background:var(--panel); border:1px solid var(--hair); border-radius:2px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .research-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px; }
+  .research-ticker{ font-size:14px; font-weight:700; }
+  .research-price{ font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .research-name{ font-size:12px; color:var(--text-dim); margin-bottom:10px; }
+  .research-stats{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .research-stats .k{ font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:2px; }
+  .research-stats .v{ font-size:13px; font-weight:600; }
   .pick-row .why{ color:var(--text-faint); font-size:11.5px; margin-top:2px; }
   .pick-row .weight{ font-variant-numeric:tabular-nums; color:var(--text-dim); }
 
@@ -413,6 +434,20 @@
 
     <div id="tiers-container">
       <div class="load-note">Loading risk tiers…</div>
+    </div>
+
+    <div class="section-head">
+      <h3>Research</h3>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="research-search-input" placeholder="Look up any ticker (e.g. AAPL)" autocapitalize="characters">
+      <button class="btn primary" id="research-search-btn" onclick="searchResearch()">Search</button>
+    </div>
+    <div id="research-search-result"></div>
+
+    <div id="research-container">
+      <div class="load-note">Loading research…</div>
     </div>
 
   </section>
@@ -699,6 +734,70 @@
     document.getElementById('picks-'+tierId).classList.toggle('open');
   }
 
+  function fmtMarketCap(n){
+    if(n == null) return '—';
+    if(n >= 1e12) return '$' + (n/1e12).toFixed(2) + 'T';
+    if(n >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+    if(n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+    return fmtUSD(n);
+  }
+
+  function researchCardHTML(f){
+    const changeHTML = f.todayChangePct != null
+      ? `<span class="${f.todayChangePct >= 0 ? 'up' : 'down'}">${f.todayChangePct >= 0 ? '+' : ''}${f.todayChangePct.toFixed(2)}%</span>`
+      : '';
+    return `
+      <div class="research-card">
+        <div class="research-top">
+          <div class="research-ticker">${f.ticker}</div>
+          <div class="research-price">${f.price != null ? fmtUSD(f.price) + ' ' : ''}${changeHTML}</div>
+        </div>
+        <div class="research-name">${f.companyName || f.description || ''}${f.sector ? ' · ' + f.sector : ''}</div>
+        <div class="research-stats">
+          <div><div class="k">Market cap</div><div class="v">${fmtMarketCap(f.marketCap)}</div></div>
+          <div><div class="k">P/E</div><div class="v">${f.peRatio != null ? f.peRatio.toFixed(1) : '—'}</div></div>
+          <div><div class="k">Div yield</div><div class="v">${f.dividendYield != null ? f.dividendYield.toFixed(2) + '%' : '—'}</div></div>
+          <div><div class="k">52w high</div><div class="v">${f.high52w != null ? fmtUSD(f.high52w) : '—'}</div></div>
+          <div><div class="k">52w low</div><div class="v">${f.low52w != null ? fmtUSD(f.low52w) : '—'}</div></div>
+          <div><div class="k">P/B</div><div class="v">${f.pbRatio != null ? f.pbRatio.toFixed(1) : '—'}</div></div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadResearch(){
+    const container = document.getElementById('research-container');
+    try{
+      const data = await api('/api/financial/research');
+      const entries = Object.entries(data.fundamentals || {});
+      if(entries.length === 0){
+        container.innerHTML = `<div class="load-note">No research data yet — ask Claude to refresh it.</div>`;
+        return;
+      }
+      container.innerHTML = entries.map(([ticker, f]) => researchCardHTML({ ticker, ...f })).join('')
+        + `<div class="report-note">As of ${new Date(data.generatedAt).toLocaleString()} — not live-updating; ask Claude to refresh.</div>`;
+    } catch(err){
+      container.innerHTML = `<div class="load-note">Could not load research: ${err.message}</div>`;
+    }
+  }
+
+  async function searchResearch(){
+    const input = document.getElementById('research-search-input');
+    const result = document.getElementById('research-search-result');
+    const ticker = input.value.trim();
+    if(!ticker) return;
+    result.innerHTML = `<div class="load-note">Searching…</div>`;
+    try{
+      const data = await api('/api/financial/research/search?ticker=' + encodeURIComponent(ticker));
+      result.innerHTML = researchCardHTML(data);
+    } catch(err){
+      result.innerHTML = `<div class="load-note">${err.message}</div>`;
+    }
+  }
+  document.getElementById('research-search-input').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') searchResearch();
+  });
+
   let pendingTier = null;
   async function openConfirm(tierId){
     const tier = TIERS.find(t => t.id === tierId);
@@ -908,6 +1007,7 @@
   loadPortfolio();
   loadReport();
   loadTiers();
+  loadResearch();
   loadBriefing();
   loadEmails();
   loadMeetings();
