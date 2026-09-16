@@ -21,7 +21,7 @@ if (!RENDER_API_KEY || !RENDER_SERVICE_ID) {
   process.exit(1);
 }
 
-const FILES = ['robinhood-snapshot.json', 'market-snapshot.json'];
+const FILES = ['robinhood-snapshot.json', 'market-snapshot.json', 'fundamentals-snapshot.json'];
 const API_BASE = `https://api.render.com/v1/services/${RENDER_SERVICE_ID}`;
 
 async function pushSecretFile(filename) {
@@ -49,11 +49,12 @@ async function triggerDeploy() {
     },
     body: JSON.stringify({}),
   });
+  const bodyText = await res.text();
   if (!res.ok) {
-    throw new Error(`Deploy trigger failed: ${res.status} ${await res.text()}`);
+    throw new Error(`Deploy trigger failed: ${res.status} ${bodyText}`);
   }
-  const deploy = await res.json();
-  console.log(`Triggered deploy ${deploy.id}`);
+  const deploy = bodyText ? JSON.parse(bodyText) : null;
+  console.log(deploy?.id ? `Triggered deploy ${deploy.id}` : 'Deploy triggered.');
 }
 
 for (const filename of FILES) {
