@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: buddy-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: APP_USERNAME
+        sync: false
+      - key: APP_PASSWORD
+        sync: false
+      - key: SHADOW_MODE
+        value: "true"
+      - key: REQUIRE_MANUAL_CONFIRMATION
+        value: "true"
+      - key: ROBINHOOD_READ_LIVE
+        value: "true"
