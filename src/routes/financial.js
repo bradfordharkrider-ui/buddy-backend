@@ -53,17 +53,18 @@ router.get('/report', async (req, res) => {
 });
 
 // GET /api/financial/tiers - risk tier definitions and Buddy's picks.
-// If real holdings have been logged, each pick's allocationPct/weightPct
-// is also converted into a real dollar amount against your logged
-// totalInvested, instead of only shadow-mode placeholder numbers.
+// Each pick's allocationPct/weightPct is also converted into a real
+// dollar amount against your actual Buddy-managed (Agentic account)
+// balance, so "35%" also reads as "$1,770.59".
 router.get('/tiers', async (req, res) => {
   try {
     const data = await getRiskTiers();
-    const { totalInvested } = await getHoldings();
-    if (totalInvested > 0) {
-      data.basedOn = { totalInvested, source: 'your logged holdings' };
+    const portfolio = await getPortfolio();
+    const baseAmount = portfolio.buddyManaged;
+    if (baseAmount > 0) {
+      data.basedOn = { amount: baseAmount, source: portfolio.shadow ? 'shadow sample balance' : 'your Buddy-managed balance' };
       data.tiers = data.tiers.map((tier) => {
-        const tierAmount = totalInvested * (tier.allocationPct / 100);
+        const tierAmount = baseAmount * (tier.allocationPct / 100);
         return {
           ...tier,
           tierAmount: Number(tierAmount.toFixed(2)),
