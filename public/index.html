@@ -928,8 +928,11 @@
         container.innerHTML = `<div class="load-note">No research data yet — ask Claude to refresh it.</div>`;
         return;
       }
+      const footer = data.live
+        ? `Live data, fetched fresh just now — no refresh needed.`
+        : `As of ${new Date(data.generatedAt).toLocaleString()} — not live-updating; ask Claude to refresh.`;
       container.innerHTML = entries.map(([ticker, f]) => researchCardHTML({ ticker, ...f })).join('')
-        + `<div class="report-note">As of ${new Date(data.generatedAt).toLocaleString()} — not live-updating; ask Claude to refresh.</div>`;
+        + `<div class="report-note">${footer}</div>`;
     } catch(err){
       container.innerHTML = `<div class="load-note">Could not load research: ${err.message}</div>`;
     }

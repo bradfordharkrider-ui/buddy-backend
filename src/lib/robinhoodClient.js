@@ -20,6 +20,7 @@
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getLiveDataForTickers } from './publicMarketData.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
@@ -51,11 +52,30 @@ const loadSnapshot = () => loadJsonSnapshot('robinhood-snapshot.json');
 const loadMarketSnapshot = () => loadJsonSnapshot('market-snapshot.json');
 const loadFundamentalsSnapshot = () => loadJsonSnapshot('fundamentals-snapshot.json');
 
-// Fixed-list research data (tier tickers + your holdings) - same manual
-// pull/refresh model as the portfolio and market snapshots above. For an
-// arbitrary user-searched ticker, see lib/publicMarketData.js instead,
-// which calls a free public API directly since Claude isn't in the loop
-// for an on-demand search.
+async function getHoldingsTickers() {
+  const snapshot = await loadSnapshot();
+  return snapshot?.positions?.map((p) => p.symbol) || [];
+}
+
+function liveEntryToFundamentals(d) {
+  return {
+    marketCap: d.marketCap,
+    peRatio: d.peRatio,
+    pbRatio: d.pbRatio,
+    dividendYield: d.dividendYield,
+    high52w: d.high52w,
+    low52w: d.low52w,
+    sector: d.sector,
+    description: d.companyName,
+  };
+}
+
+// Fixed-list research data (tier tickers + your holdings). When
+// FINNHUB_API_KEY is configured, this is fetched live on every call - no
+// manual refresh needed, since it's market data, not your private
+// account data. Falls back to the manual data/fundamentals-snapshot.json
+// if Finnhub isn't configured or the live fetch comes back empty. For an
+// arbitrary user-searched ticker, see lib/publicMarketData.js instead.
 export async function getFundamentals(ticker) {
   const snapshot = await loadFundamentalsSnapshot();
   if (!snapshot) return null;
@@ -65,6 +85,16 @@ export async function getFundamentals(ticker) {
 }
 
 export async function getAllFundamentals() {
+  if (READ_LIVE) {
+    const holdingsTickers = await getHoldingsTickers();
+    const allTickers = [...new Set([...TIER_TICKERS, ...holdingsTickers])];
+    const live = await getLiveDataForTickers(allTickers);
+    if (Object.keys(live).length > 0) {
+      const fundamentals = {};
+      for (const [t, d] of Object.entries(live)) fundamentals[t] = liveEntryToFundamentals(d);
+      return { generatedAt: new Date().toISOString(), live: true, fundamentals };
+    }
+  }
   const snapshot = await loadFundamentalsSnapshot();
   if (!snapshot) return { generatedAt: null, fundamentals: {} };
   return snapshot;
@@ -112,6 +142,12 @@ const RISK_TIERS = [
   },
 ];
 
+// Real tickers only - excludes the "Short-dated call, single-name"
+// placeholder entry, which isn't an actual symbol to look up.
+const TIER_TICKERS = [...new Set(RISK_TIERS.flatMap((t) => t.picks.map((p) => p.ticker)))].filter((t) =>
+  /^[A-Z.]{1,6}$/.test(t)
+);
+
 export async function getPortfolio() {
   if (READ_LIVE) {
     const snapshot = await loadSnapshot();
@@ -135,25 +171,43 @@ export async function getPortfolio() {
   throw new Error('No portfolio data available: ROBINHOOD_READ_LIVE is off and SHADOW_MODE is off.');
 }
 
+function quoteLine(ticker, q) {
+  const up = q.todayChangePct >= 0;
+  return `${ticker}: $${q.price.toFixed(2)} (${up ? '+' : ''}${q.todayChangePct.toFixed(2)}% today)`;
+}
+
+const REAL_QUOTES_OPINION =
+  "This is factual market data, not a recommendation - Buddy doesn't have a take on which posture is favorable this week. Review the numbers and decide your own posture; log anything you actually trade in Robinhood via the holdings tool so these numbers stay accurate.";
+
 export async function getMarketReport() {
   if (READ_LIVE) {
+    const live = await getLiveDataForTickers(TIER_TICKERS);
+    if (Object.keys(live).length > 0) {
+      return {
+        shadow: false,
+        generatedAt: new Date().toISOString(),
+        blocks: [
+          {
+            title: 'Live quotes (risk-tier picks)',
+            items: TIER_TICKERS.filter((t) => live[t]).map((t) => quoteLine(t, live[t])),
+          },
+        ],
+        opinion: REAL_QUOTES_OPINION,
+        note: 'Live prices, fetched fresh on every load - no refresh needed.',
+      };
+    }
     const market = await loadMarketSnapshot();
     if (market) {
-      const quoteLines = Object.entries(market.quotes).map(([ticker, q]) => {
-        const up = q.todayChangePct >= 0;
-        return `${ticker}: $${q.price.toFixed(2)} (${up ? '+' : ''}${q.todayChangePct.toFixed(2)}% today)`;
-      });
       return {
         shadow: false,
         generatedAt: market.generatedAt,
         blocks: [
           {
             title: 'Real quotes (risk-tier picks)',
-            items: quoteLines,
+            items: Object.entries(market.quotes).map(([t, q]) => quoteLine(t, q)),
           },
         ],
-        opinion:
-          "This is factual market data, not a recommendation - Buddy doesn't have a take on which posture is favorable this week. Review the numbers and decide your own posture; log anything you actually trade in Robinhood via the holdings tool so these numbers stay accurate.",
+        opinion: REAL_QUOTES_OPINION,
         note: 'Real quotes as of the snapshot time above - not live-updating. Ask Claude to refresh data/market-snapshot.json for current prices.',
       };
     }
@@ -199,24 +253,32 @@ export async function getMarketReport() {
   throw new Error('Live market report feed not yet implemented.');
 }
 
+function mergeTierQuotes(quotes, note) {
+  const tiers = RISK_TIERS.map((tier) => ({
+    ...tier,
+    picks: tier.picks.map((pick) => {
+      const q = quotes[pick.ticker];
+      return q ? { ...pick, currentPrice: q.price, todayChangePct: q.todayChangePct } : pick;
+    }),
+  }));
+  return { shadow: false, tiers, note };
+}
+
 export async function getRiskTiers() {
   if (READ_LIVE) {
+    const live = await getLiveDataForTickers(TIER_TICKERS);
+    if (Object.keys(live).length > 0) {
+      return mergeTierQuotes(
+        live,
+        "Picks are illustrative examples with live current prices, not personalized recommendations - Buddy doesn't pick investments for you."
+      );
+    }
     const market = await loadMarketSnapshot();
     if (market) {
-      const tiers = RISK_TIERS.map((tier) => ({
-        ...tier,
-        picks: tier.picks.map((pick) => {
-          const quote = market.quotes[pick.ticker];
-          return quote
-            ? { ...pick, currentPrice: quote.price, todayChangePct: quote.todayChangePct }
-            : pick;
-        }),
-      }));
-      return {
-        shadow: false,
-        tiers,
-        note: "Picks are illustrative examples with real current prices, not personalized recommendations - Buddy doesn't pick investments for you.",
-      };
+      return mergeTierQuotes(
+        market.quotes,
+        "Picks are illustrative examples with real current prices, not personalized recommendations - Buddy doesn't pick investments for you."
+      );
     }
   }
   return { shadow: SHADOW_MODE, tiers: RISK_TIERS };

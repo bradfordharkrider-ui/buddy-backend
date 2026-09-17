@@ -25,10 +25,7 @@ async function finnhubGet(path, params) {
   return res.json();
 }
 
-export async function searchTicker(rawTicker) {
-  if (!isSearchConfigured()) {
-    throw new Error('Search isn\'t configured yet - set FINNHUB_API_KEY (get a free key at finnhub.io).');
-  }
+async function fetchTickerData(rawTicker) {
   const ticker = rawTicker.trim().toUpperCase();
   const [quote, profile, metric] = await Promise.all([
     finnhubGet('/quote', { symbol: ticker }),
@@ -57,4 +54,40 @@ export async function searchTicker(rawTicker) {
     live: true,
     retrievedAt: new Date().toISOString(),
   };
+}
+
+export async function searchTicker(rawTicker) {
+  if (!isSearchConfigured()) {
+    throw new Error('Search isn\'t configured yet - set FINNHUB_API_KEY (get a free key at finnhub.io).');
+  }
+  return fetchTickerData(rawTicker);
+}
+
+// Cached live lookups for the fixed ticker set (tier picks + holdings) -
+// short TTL just to avoid refetching on every rapid tab switch, not to
+// hold data back from being current.
+const CACHE_TTL_MS = 60_000;
+const cache = new Map(); // ticker -> { data, expiresAt }
+
+async function getCached(ticker) {
+  const key = ticker.toUpperCase();
+  const hit = cache.get(key);
+  if (hit && hit.expiresAt > Date.now()) return hit.data;
+  const data = await fetchTickerData(key);
+  cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+  return data;
+}
+
+// Fetches live data for many tickers in parallel. Never throws - a
+// ticker that fails (rate limit, bad symbol, network hiccup) is just
+// left out of the result rather than breaking the whole page.
+export async function getLiveDataForTickers(tickers) {
+  if (!isSearchConfigured()) return {};
+  const unique = [...new Set(tickers.map((t) => t.toUpperCase()))];
+  const results = await Promise.allSettled(unique.map((t) => getCached(t)));
+  const out = {};
+  results.forEach((result, i) => {
+    if (result.status === 'fulfilled') out[unique[i]] = result.value;
+  });
+  return out;
 }
