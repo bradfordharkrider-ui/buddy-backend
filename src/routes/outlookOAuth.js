@@ -4,7 +4,7 @@
 // redirect URI registered in Azure.
 
 import { Router } from 'express';
-import { getAuthUrl, handleCallback, isConnected, isConfigured, disconnect } from '../lib/msGraphAuth.js';
+import { getAuthUrl, handleCallback, isConnected, isConfigured, disconnect, exportTokenCache } from '../lib/msGraphAuth.js';
 import { requireAuth } from './auth.js';
 
 const router = Router();
@@ -41,6 +41,14 @@ router.get('/callback', async (req, res) => {
 router.post('/disconnect', requireAuth, async (req, res) => {
   await disconnect();
   res.json({ ok: true });
+});
+
+router.get('/export', requireAuth, async (req, res) => {
+  try {
+    res.json(await exportTokenCache());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

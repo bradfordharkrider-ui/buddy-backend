@@ -96,6 +96,14 @@ export async function isConnected() {
   return Boolean(homeAccountId);
 }
 
+// Lets Claude pull the current token cache off a running instance and
+// push it to Render as a Secret File, so it survives the next deploy -
+// same pattern as the passkey (see passkeyAuth.js's exportStore()).
+export async function exportTokenCache() {
+  await ensureInit();
+  return { cache: client.getTokenCache().serialize(), homeAccountId };
+}
+
 export async function getAuthUrl() {
   if (!isConfigured()) throw new Error('Outlook isn\'t configured yet - missing MS_GRAPH_* env vars.');
   await ensureInit();
