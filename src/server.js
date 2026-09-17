@@ -1,39 +1,40 @@
 import 'dotenv/config';
 import path from 'path';
-import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import financialRoutes from './routes/financial.js';
 import workRoutes from './routes/work.js';
+import authRoutes, { requireAuth } from './routes/auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+// Render terminates TLS at a proxy in front of this app - without this,
+// req.secure is always false, which breaks the `secure` cookie flag.
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 
-// ── Password gate ──────────────────────────────────────────────
+const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-only-secret-change-in-production';
+app.use(cookieParser(SESSION_SECRET));
+
+// ── Auth ────────────────────────────────────────────────────────
 // Local/LAN use was implicitly protected by needing to be on the same
-// network. Once this is deployed to a public URL, anyone with the link
-// could otherwise see real portfolio/email data. If APP_USERNAME and
-// APP_PASSWORD are set, require HTTP Basic Auth on every request; if
-// unset (e.g. local dev), skip it as before.
-const APP_USERNAME = process.env.APP_USERNAME;
-const APP_PASSWORD = process.env.APP_PASSWORD;
-if (APP_USERNAME && APP_PASSWORD) {
-  app.use((req, res, next) => {
-    const header = req.headers.authorization || '';
-    const [scheme, encoded] = header.split(' ');
-    if (scheme === 'Basic' && encoded) {
-      const [user = '', pass = ''] = Buffer.from(encoded, 'base64').toString().split(':');
-      const userOk = user.length === APP_USERNAME.length && crypto.timingSafeEqual(Buffer.from(user), Buffer.from(APP_USERNAME));
-      const passOk = pass.length === APP_PASSWORD.length && crypto.timingSafeEqual(Buffer.from(pass), Buffer.from(APP_PASSWORD));
-      if (userOk && passOk) return next();
-    }
-    res.set('WWW-Authenticate', 'Basic realm="Buddy"');
-    res.status(401).send('Authentication required.');
-  });
+// network. Once deployed publicly, anyone with the link could otherwise
+// see real portfolio/email data. Login is password (fallback) or a Face
+// ID / Touch ID passkey (see routes/auth.js); a signed cookie carries the
+// session afterward. If APP_USERNAME/APP_PASSWORD are unset (local dev),
+// auth is skipped entirely, same as before.
+const AUTH_REQUIRED = Boolean(process.env.APP_USERNAME && process.env.APP_PASSWORD);
+
+app.use('/api/auth', authRoutes);
+
+if (AUTH_REQUIRED) {
+  app.use('/api/financial', requireAuth);
+  app.use('/api/work', requireAuth);
+  app.use('/api/health', requireAuth);
 }
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -58,4 +59,5 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Buddy backend running on http://localhost:${port}`);
   console.log(`Shadow mode: ${process.env.SHADOW_MODE === 'true' ? 'ON (no real actions will execute)' : 'OFF - real actions can execute'}`);
+  console.log(`Auth required: ${AUTH_REQUIRED}`);
 });
