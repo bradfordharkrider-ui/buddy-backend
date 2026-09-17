@@ -13,13 +13,32 @@ import { getAccessToken, isConnected } from './msGraphAuth.js';
 
 const SHADOW_MODE = process.env.SHADOW_MODE === 'true';
 
-async function graphGet(path) {
+const TZ = 'America/New_York';
+
+async function graphGet(path, extraHeaders = {}) {
   const token = await getAccessToken();
   const res = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, ...extraHeaders },
   });
   if (!res.ok) throw new Error(`Graph API request failed: ${res.status} ${await res.text()}`);
   return res.json();
+}
+
+// Graph returns start/end as local wall-clock strings (no offset) when
+// asked for a specific timezone via the Prefer header below, so this is
+// plain string slicing, not a Date/timezone conversion.
+function formatLocalTime(dateTimeString) {
+  const match = dateTimeString?.match(/T(\d{2}):(\d{2})/);
+  if (!match) return '';
+  let hour = parseInt(match[1], 10);
+  const minute = match[2];
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12 || 12;
+  return `${hour}:${minute} ${ampm}`;
+}
+
+function todayDateStr() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 }
 
 const EMAILS = [
@@ -97,6 +116,17 @@ const TASKS = [
 ];
 
 export async function getInboxTriage() {
+  if (await isConnected()) {
+    const [{ emails }, { meetings }] = await Promise.all([getEmails(), getMeetings()]);
+    return {
+      shadow: false,
+      live: true,
+      meetingsToday: meetings.length,
+      needReply: emails.filter((e) => e.tag === 'unread').length,
+      overdueFollowUps: 0,
+      note: 'Follow-ups/tasks aren\'t connected yet, so this is always 0 for now.',
+    };
+  }
   if (SHADOW_MODE) {
     return {
       shadow: true,
@@ -106,8 +136,7 @@ export async function getInboxTriage() {
       note: 'Shadow mode - replace with a real Graph /me/messages call',
     };
   }
-  // TODO: real Graph API call
-  throw new Error('Live Outlook connection not yet implemented.');
+  throw new Error('Outlook isn\'t connected yet.');
 }
 
 export async function getEmails() {
@@ -134,10 +163,25 @@ export async function getEmails() {
 }
 
 export async function getMeetings() {
+  if (await isConnected()) {
+    const day = todayDateStr();
+    const data = await graphGet(
+      `/me/calendarView?startDateTime=${day}T00:00:00&endDateTime=${day}T23:59:59&$select=id,subject,start,end,bodyPreview,location&$orderby=start/dateTime`,
+      { Prefer: `outlook.timezone="${TZ}"` }
+    );
+    const meetings = data.value.map((e) => ({
+      id: e.id,
+      time: formatLocalTime(e.start?.dateTime),
+      title: e.subject || '(no title)',
+      prep: e.bodyPreview ? [e.bodyPreview] : [],
+      location: e.location?.displayName || null,
+    }));
+    return { shadow: false, live: true, meetings };
+  }
   if (SHADOW_MODE) {
     return { shadow: true, meetings: MEETINGS };
   }
-  throw new Error('Live Outlook connection not yet implemented.');
+  throw new Error('Outlook isn\'t connected yet.');
 }
 
 export async function getCalendarSuggestions() {

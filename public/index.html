@@ -1089,8 +1089,8 @@
         <div class="meeting-card">
           <div class="meeting-top"><div class="meeting-time">${m.time}</div></div>
           <div class="meeting-title">${m.title}</div>
-          <button class="prep-toggle" onclick="this.nextElementSibling.classList.toggle('open')">Show prep ▾</button>
-          <ul class="prep-body">${m.prep.map(p=>`<li>${p}</li>`).join('')}</ul>
+          ${m.prep.length ? `<button class="prep-toggle" onclick="this.nextElementSibling.classList.toggle('open')">Show prep ▾</button>
+          <ul class="prep-body">${m.prep.map(p=>`<li>${p}</li>`).join('')}</ul>` : ''}
         </div>
       `).join('');
     } catch(err){
