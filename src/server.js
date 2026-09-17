@@ -8,6 +8,7 @@ import financialRoutes from './routes/financial.js';
 import workRoutes from './routes/work.js';
 import authRoutes, { requireAuth } from './routes/auth.js';
 import outlookOAuthRoutes from './routes/outlookOAuth.js';
+import googleOAuthRoutes from './routes/googleOAuth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +33,7 @@ const AUTH_REQUIRED = Boolean(process.env.APP_USERNAME && process.env.APP_PASSWO
 
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/outlook', outlookOAuthRoutes);
+app.use('/api/auth/google', googleOAuthRoutes);
 
 if (AUTH_REQUIRED) {
   app.use('/api/financial', requireAuth);

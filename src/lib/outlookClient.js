@@ -146,6 +146,7 @@ export async function getEmails() {
     );
     const emails = data.value.map((m) => ({
       id: m.id,
+      source: 'outlook',
       from: m.from?.emailAddress?.name || m.from?.emailAddress?.address || 'Unknown sender',
       subject: m.subject || '(no subject)',
       tag: m.isRead ? null : 'unread',
@@ -171,6 +172,7 @@ export async function getMeetings() {
     );
     const meetings = data.value.map((e) => ({
       id: e.id,
+      source: 'outlook',
       time: formatLocalTime(e.start?.dateTime),
       title: e.subject || '(no title)',
       prep: e.bodyPreview ? [e.bodyPreview] : [],

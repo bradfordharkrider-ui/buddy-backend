@@ -327,6 +327,7 @@
   }
   .email-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:6px; }
   .email-from{ font-size:13.5px; font-weight:600; }
+  .source-label{ font-size:11px; font-weight:400; color:var(--text-faint); }
   .email-subject{ font-size:13px; color:var(--text-dim); margin-bottom:8px; }
   .tag{
     font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:20px;
@@ -537,9 +538,14 @@
       </div>
     </div>
 
-    <div class="banner-note" id="outlook-connect-banner" style="display:none; margin-bottom:16px; align-items:center; justify-content:space-between; gap:10px;">
-      <span>Outlook isn't connected yet — inbox below is sample data.</span>
+    <div class="banner-note" id="outlook-connect-banner" style="display:none; margin-bottom:10px; align-items:center; justify-content:space-between; gap:10px;">
+      <span>Outlook isn't connected yet — work inbox is sample data.</span>
       <a class="btn primary" style="flex:0 0 auto; text-decoration:none;" href="/api/auth/outlook/login">Connect Outlook</a>
+    </div>
+
+    <div class="banner-note" id="google-connect-banner" style="display:none; margin-bottom:16px; align-items:center; justify-content:space-between; gap:10px;">
+      <span>Gmail isn't connected yet — personal inbox missing.</span>
+      <a class="btn primary" style="flex:0 0 auto; text-decoration:none;" href="/api/auth/google/login">Connect Gmail</a>
     </div>
 
     <div class="section-head">
@@ -1037,7 +1043,7 @@
       container.innerHTML = EMAILS.map(e => `
         <div class="email-card">
           <div class="email-top">
-            <div><div class="email-from">${e.from}</div><div class="email-subject">${e.subject}</div></div>
+            <div><div class="email-from">${e.from}${e.source && e.source !== 'sample' ? ` <span class="source-label">· ${e.source === 'gmail' ? 'Gmail' : 'Outlook'}</span>` : ''}</div><div class="email-subject">${e.subject}</div></div>
             ${e.tag ? `<div class="tag ${e.tag}">${e.tagLabel}</div>` : ''}
           </div>
           <div class="email-blurb">${e.blurb}</div>
@@ -1088,7 +1094,7 @@
       container.innerHTML = data.meetings.map(m => `
         <div class="meeting-card">
           <div class="meeting-top"><div class="meeting-time">${m.time}</div></div>
-          <div class="meeting-title">${m.title}</div>
+          <div class="meeting-title">${m.title}${m.source && m.source !== 'sample' ? ` <span class="source-label">· ${m.source === 'google' ? 'Google' : 'Outlook'}</span>` : ''}</div>
           ${m.prep.length ? `<button class="prep-toggle" onclick="this.nextElementSibling.classList.toggle('open')">Show prep ▾</button>
           <ul class="prep-body">${m.prep.map(p=>`<li>${p}</li>`).join('')}</ul>` : ''}
         </div>
@@ -1176,6 +1182,7 @@
     loadTiers();
     loadResearch();
     loadOutlookStatus();
+    loadGoogleStatus();
     loadBriefing();
     loadEmails();
     loadMeetings();
@@ -1187,6 +1194,15 @@
     try{
       const status = await api('/api/auth/outlook/status');
       document.getElementById('outlook-connect-banner').style.display = status.connected ? 'none' : 'flex';
+    } catch(err){
+      // fine to fail silently - the banner just stays hidden
+    }
+  }
+
+  async function loadGoogleStatus(){
+    try{
+      const status = await api('/api/auth/google/status');
+      document.getElementById('google-connect-banner').style.display = status.connected ? 'none' : 'flex';
     } catch(err){
       // fine to fail silently - the banner just stays hidden
     }
