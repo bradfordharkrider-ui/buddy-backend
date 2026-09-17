@@ -21,11 +21,17 @@ if (!RENDER_API_KEY || !RENDER_SERVICE_ID) {
   process.exit(1);
 }
 
-const FILES = ['robinhood-snapshot.json', 'market-snapshot.json', 'fundamentals-snapshot.json'];
+const FILES = ['robinhood-snapshot.json', 'market-snapshot.json', 'fundamentals-snapshot.json', 'webauthn-credentials.json'];
 const API_BASE = `https://api.render.com/v1/services/${RENDER_SERVICE_ID}`;
 
 async function pushSecretFile(filename) {
-  const content = await readFile(path.join(DATA_DIR, filename), 'utf-8');
+  let content;
+  try {
+    content = await readFile(path.join(DATA_DIR, filename), 'utf-8');
+  } catch (err) {
+    if (err.code === 'ENOENT') return console.log(`Skipped ${filename} (no local file yet)`);
+    throw err;
+  }
   const res = await fetch(`${API_BASE}/secret-files/${encodeURIComponent(filename)}`, {
     method: 'PUT',
     headers: {

@@ -10,6 +10,7 @@ import {
   verifyRegistration,
   getAuthenticationOptions,
   verifyAuthentication,
+  exportStore,
 } from '../lib/passkeyAuth.js';
 
 const router = Router();
@@ -113,6 +114,17 @@ router.post('/passkey/login/verify', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// Lets Claude pull the currently-registered passkey off a running
+// instance to persist it as a Render Secret File - see
+// scripts/push-to-render.mjs and passkeyAuth.js's exportStore().
+router.get('/passkey/export', requireAuth, async (req, res) => {
+  try {
+    res.json(await exportStore());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

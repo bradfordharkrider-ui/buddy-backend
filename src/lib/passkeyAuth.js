@@ -73,6 +73,14 @@ export async function hasPasskey() {
   return store.credentials.length > 0;
 }
 
+// Exports the raw store so it can be pushed to Render as a Secret File
+// (see scripts/push-to-render.mjs) - otherwise a passkey registered live
+// on the deployed instance only lives on that container's ephemeral disk
+// and is lost on the next deploy.
+export async function exportStore() {
+  return loadStore();
+}
+
 export async function getRegistrationOptions() {
   const store = await loadStore();
   const userIDBytes = store.userID
