@@ -2,16 +2,25 @@
 // This file is the ONLY place that should ever hold Outlook/Graph
 // credentials or call Microsoft Graph. Do not import this from
 // financial.js or any non-work route - keeps the tabs isolated.
+// Auth itself lives in lib/msGraphAuth.js - this file just calls
+// getAccessToken() and hits the Graph API.
 //
-// Setup: register an app at portal.azure.com to get MS_GRAPH_CLIENT_ID /
-// MS_GRAPH_CLIENT_SECRET / MS_GRAPH_TENANT_ID. See README "Connecting
-// Outlook" for the full OAuth setup.
-//
-// TODO: replace these stubs with real Graph API calls (Mail.Read,
-// Mail.ReadWrite for drafts, Calendars.ReadWrite scopes). Keep
-// SHADOW_MODE=true until verified.
+// Being wired up gradually, one piece at a time: real inbox reading is
+// live now; meetings/calendar/tasks are still shadow-mode sample data
+// until those are connected next.
+
+import { getAccessToken, isConnected } from './msGraphAuth.js';
 
 const SHADOW_MODE = process.env.SHADOW_MODE === 'true';
+
+async function graphGet(path) {
+  const token = await getAccessToken();
+  const res = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`Graph API request failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
 
 const EMAILS = [
   {
@@ -102,10 +111,26 @@ export async function getInboxTriage() {
 }
 
 export async function getEmails() {
+  if (await isConnected()) {
+    const data = await graphGet(
+      '/me/mailFolders/inbox/messages?$top=15&$select=id,subject,from,bodyPreview,isRead,receivedDateTime&$orderby=receivedDateTime desc'
+    );
+    const emails = data.value.map((m) => ({
+      id: m.id,
+      from: m.from?.emailAddress?.name || m.from?.emailAddress?.address || 'Unknown sender',
+      subject: m.subject || '(no subject)',
+      tag: m.isRead ? null : 'unread',
+      tagLabel: m.isRead ? null : 'Unread',
+      blurb: m.bodyPreview || '',
+      suggestedReply: null,
+      receivedAt: m.receivedDateTime,
+    }));
+    return { shadow: false, live: true, emails };
+  }
   if (SHADOW_MODE) {
     return { shadow: true, emails: EMAILS };
   }
-  throw new Error('Live Outlook connection not yet implemented.');
+  throw new Error('Outlook isn\'t connected yet.');
 }
 
 export async function getMeetings() {

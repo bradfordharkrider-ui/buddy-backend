@@ -335,6 +335,7 @@
   .tag.urgent{ background:rgba(196,85,74,0.15); color:var(--rose); }
   .tag.waiting{ background:rgba(212,169,79,0.15); color:var(--gold); }
   .tag.low{ background:rgba(156,163,176,0.12); color:var(--text-faint); }
+  .tag.unread{ background:rgba(212,169,79,0.15); color:var(--gold); }
   .email-blurb{ font-size:13px; color:var(--text-dim); line-height:1.5; margin-bottom:12px; }
   .email-actions{ display:flex; gap:8px; }
 
@@ -534,6 +535,11 @@
         <div class="brief-item"><div class="v num" id="brief-reply">—</div><div class="k">Need a reply</div></div>
         <div class="brief-item"><div class="v num" id="brief-overdue">—</div><div class="k">Overdue follow-up</div></div>
       </div>
+    </div>
+
+    <div class="banner-note" id="outlook-connect-banner" style="display:none; margin-bottom:16px; align-items:center; justify-content:space-between; gap:10px;">
+      <span>Outlook isn't connected yet — inbox below is sample data.</span>
+      <a class="btn primary" style="flex:0 0 auto; text-decoration:none;" href="/api/auth/outlook/login">Connect Outlook</a>
     </div>
 
     <div class="section-head">
@@ -1032,7 +1038,7 @@
         <div class="email-card">
           <div class="email-top">
             <div><div class="email-from">${e.from}</div><div class="email-subject">${e.subject}</div></div>
-            <div class="tag ${e.tag}">${e.tagLabel}</div>
+            ${e.tag ? `<div class="tag ${e.tag}">${e.tagLabel}</div>` : ''}
           </div>
           <div class="email-blurb">${e.blurb}</div>
           <div class="email-actions">
@@ -1169,11 +1175,21 @@
     loadReport();
     loadTiers();
     loadResearch();
+    loadOutlookStatus();
     loadBriefing();
     loadEmails();
     loadMeetings();
     loadCalendarSuggestions();
     loadTasks();
+  }
+
+  async function loadOutlookStatus(){
+    try{
+      const status = await api('/api/auth/outlook/status');
+      document.getElementById('outlook-connect-banner').style.display = status.connected ? 'none' : 'flex';
+    } catch(err){
+      // fine to fail silently - the banner just stays hidden
+    }
   }
 
   checkAuth();

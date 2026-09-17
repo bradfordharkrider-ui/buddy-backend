@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import financialRoutes from './routes/financial.js';
 import workRoutes from './routes/work.js';
 import authRoutes, { requireAuth } from './routes/auth.js';
+import outlookOAuthRoutes from './routes/outlookOAuth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -30,6 +31,7 @@ app.use(cookieParser(SESSION_SECRET));
 const AUTH_REQUIRED = Boolean(process.env.APP_USERNAME && process.env.APP_PASSWORD);
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/outlook', outlookOAuthRoutes);
 
 if (AUTH_REQUIRED) {
   app.use('/api/financial', requireAuth);
