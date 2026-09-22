@@ -50,6 +50,7 @@ async function loadJsonSnapshot(filename) {
 
 const loadSnapshot = () => loadJsonSnapshot('robinhood-snapshot.json');
 const loadMarketSnapshot = () => loadJsonSnapshot('market-snapshot.json');
+const loadResearchSnapshot = () => loadJsonSnapshot('research-snapshot.json');
 const loadFundamentalsSnapshot = () => loadJsonSnapshot('fundamentals-snapshot.json');
 
 async function getHoldingsTickers() {
@@ -181,6 +182,16 @@ const REAL_QUOTES_OPINION =
 
 export async function getMarketReport() {
   if (READ_LIVE) {
+    const research = await loadResearchSnapshot();
+    if (research) {
+      return {
+        shadow: false,
+        generatedAt: research.generatedAt,
+        blocks: research.blocks,
+        opinion: REAL_QUOTES_OPINION,
+        note: 'Real research (macro, earnings calendar, sector signals, IPO watch) pulled weekly - ask Claude to refresh data/research-snapshot.json for the latest.',
+      };
+    }
     const live = await getLiveDataForTickers(TIER_TICKERS);
     if (Object.keys(live).length > 0) {
       return {

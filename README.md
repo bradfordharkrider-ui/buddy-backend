@@ -64,6 +64,25 @@ account. This is the mode to use while you connect the frontend
 4. Replace the `TODO` stubs in `src/lib/outlookClient.js` with real Graph
    calls.
 
+## Weekly research pull
+
+The Report tab (`getMarketReport()` / `data/research-snapshot.json`) is a
+factual weekly digest - macro/global events, the upcoming large-cap earnings
+calendar, sector & theme signals (semis/AI, crypto), IPO watch, and an
+options/volatility screen. Ask Claude to refresh it periodically (weekly is
+reasonable); Claude researches the week via web search + the Robinhood MCP's
+market-data tools (earnings calendar, scanners) and rewrites the snapshot
+file, same pattern as the other `data/*-snapshot.json` files.
+
+This is deliberately kept separate from `RISK_TIERS` in
+`robinhoodClient.js` - the report is raw research, but Claude does not
+pick or weight tickers based on it (Claude can't give investment advice).
+If you want that week's tiers to reflect the research, read the report
+yourself and tell Claude which tickers/allocations you've decided on; Claude
+will update `RISK_TIERS` to match and redeploy. The picks and the % of your
+principal behind each one are always your call, made from Claude's research,
+not Claude's call.
+
 ## Deploying so it's actually "live" on your phone
 
 This needs to run somewhere persistent, not on your Mac only. Simple
