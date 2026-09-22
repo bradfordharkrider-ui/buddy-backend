@@ -142,12 +142,16 @@
   /* Section headers */
   .section-head{
     display:flex; align-items:center; justify-content:space-between;
-    margin:26px 0 12px;
+    margin:26px 0 4px;
   }
   .section-head h3{ font-size:14px; font-weight:600; color:var(--text); }
   .section-head button.link{
     background:none; border:none; color:var(--gold); font-size:12.5px;
     font-family:inherit; cursor:pointer; padding:2px;
+  }
+  .section-sub{
+    font-size:12.5px; color:var(--text-faint); line-height:1.5;
+    margin-bottom:14px;
   }
 
   /* Report card */
@@ -192,26 +196,7 @@
   .opinion strong{ font-size:13px; display:block; margin-bottom:4px; }
   .opinion p{ font-size:13px; line-height:1.5; color:var(--text-dim); }
 
-  /* Risk tiers */
-  .tier{
-    background:var(--panel);
-    border:1px solid var(--hair);
-    border-left:3px solid var(--hair);
-    border-radius:2px;
-    padding:16px 18px;
-    margin-bottom:12px;
-  }
-  .tier.low{ border-left-color:var(--sage); }
-  .tier.medium{ border-left-color:var(--gold); }
-  .tier.high{ border-left-color:var(--rose); }
-  .tier-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
-  .tier-name{ font-size:15px; font-weight:700; }
-  .tier.low .tier-name{ color:var(--sage); }
-  .tier.medium .tier-name{ color:var(--amber-soft); }
-  .tier.high .tier-name{ color:var(--rose); }
-  .tier-alloc{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
-  .tier-desc{ font-size:13px; color:var(--text-dim); line-height:1.5; margin-bottom:14px; }
-  .tier-actions{ display:flex; gap:8px; }
+  /* Weekly candidates */
   .btn{
     font-family:inherit; font-size:12.5px; font-weight:600;
     padding:9px 14px; border-radius:3px; cursor:pointer;
@@ -223,16 +208,41 @@
   .btn.primary{ background:var(--gold); border-color:var(--gold); color:#1A1406; }
   .btn.ghost{ color:var(--text-dim); }
 
-  .picks{
-    margin-top:14px; padding-top:14px; border-top:1px solid var(--hair);
-    display:none;
+  .candidates-disclaimer{
+    background:rgba(212,169,79,0.08);
+    border:1px solid rgba(212,169,79,0.35);
+    border-radius:4px;
+    padding:12px 14px;
+    font-size:12.5px; line-height:1.5; color:var(--text-dim);
+    margin-bottom:16px;
   }
-  .picks.open{ display:block; }
-  .pick-row{
-    display:flex; justify-content:space-between; align-items:center;
-    font-size:13px; padding:7px 0;
+  .candidate-tier{
+    background:var(--panel);
+    border:1px solid var(--hair);
+    border-left:3px solid var(--hair);
+    border-radius:2px;
+    padding:16px 18px;
+    margin-bottom:12px;
   }
-  .pick-row .ticker{ font-weight:700; }
+  .candidate-tier.low{ border-left-color:var(--sage); }
+  .candidate-tier.medium{ border-left-color:var(--gold); }
+  .candidate-tier.high{ border-left-color:var(--rose); }
+  .candidate-tier-name{ font-size:15px; font-weight:700; margin-bottom:2px; }
+  .candidate-tier.low .candidate-tier-name{ color:var(--sage); }
+  .candidate-tier.medium .candidate-tier-name{ color:var(--amber-soft); }
+  .candidate-tier.high .candidate-tier-name{ color:var(--rose); }
+  .candidate-tier-meaning{ font-size:12.5px; color:var(--text-dim); line-height:1.5; margin-bottom:6px; }
+  .candidate-tier-criteria{ font-size:11.5px; color:var(--text-faint); line-height:1.5; margin-bottom:14px; font-style:italic; }
+  .candidate-card{
+    padding:12px 0; border-top:1px solid var(--hair);
+  }
+  .candidate-card:first-of-type{ border-top:none; padding-top:0; }
+  .candidate-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+  .candidate-ticker{ font-weight:700; font-size:14px; }
+  .candidate-name{ font-size:11.5px; color:var(--text-faint); font-weight:400; }
+  .candidate-price{ font-size:13px; font-variant-numeric:tabular-nums; }
+  .candidate-note{ font-size:12.5px; color:var(--text-dim); line-height:1.55; }
+  .no-candidates{ font-size:12.5px; color:var(--text-faint); font-style:italic; }
 
   /* Research */
   .search-row{ display:flex; gap:8px; margin-bottom:14px; }
@@ -254,9 +264,6 @@
   .research-stats{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .research-stats .k{ font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:2px; }
   .research-stats .v{ font-size:13px; font-weight:600; }
-  .pick-row .why{ color:var(--text-faint); font-size:11.5px; margin-top:2px; }
-  .pick-row .weight{ font-variant-numeric:tabular-nums; color:var(--text-dim); text-align:right; line-height:1.4; }
-  .pick-row .weight-amount{ display:block; font-size:11px; color:var(--text-faint); }
 
   /* Bottom nav */
   nav.tabbar{
@@ -292,11 +299,6 @@
   @keyframes slideup{ from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;} }
   .modal h3{ font-size:17px; margin-bottom:4px; }
   .modal .sub{ font-size:12.5px; color:var(--text-faint); margin-bottom:18px; }
-  .modal .trade-row{
-    display:flex; justify-content:space-between; font-size:13.5px;
-    padding:9px 0; border-bottom:1px solid var(--hair);
-  }
-  .modal .trade-row:last-of-type{ border-bottom:none; }
   .modal-actions{ display:flex; gap:10px; margin-top:20px; }
   .banner-note{
     margin-top:16px; font-size:11.5px; color:var(--text-faint);
@@ -488,6 +490,7 @@
       <h3>Weekly check-in</h3>
       <button class="link" id="refresh-report">Re-run report</button>
     </div>
+    <div class="section-sub">What moved the market this week, in plain English — not advice, just what happened.</div>
 
     <div class="report" id="report-card">
       <div class="load-note">Loading report…</div>
@@ -496,22 +499,29 @@
     <div class="opinion" id="opinion-card" style="display:none;">
       <div class="dot"></div>
       <div>
-        <strong>Buddy's take</strong>
+        <strong>Good to know</strong>
         <p id="opinion-text"></p>
       </div>
     </div>
 
     <div class="section-head">
-      <h3>Choose this week's posture</h3>
+      <h3>This week's ideas</h3>
+    </div>
+    <div class="section-sub">
+      A handful of stocks came up in real news this week, grouped by how bumpy that
+      type of stock tends to be — calmer at the top, more up-and-down at the bottom.
+      Buddy isn't ranking these or telling you which to buy; it's just handing you
+      what it found so you can look closer and decide for yourself.
     </div>
 
-    <div id="tiers-container">
-      <div class="load-note">Loading risk tiers…</div>
+    <div id="candidates-container">
+      <div class="load-note">Loading this week's ideas…</div>
     </div>
 
     <div class="section-head">
       <h3>Research</h3>
     </div>
+    <div class="section-sub">Look up any stock's basics — P/E is how pricey it is compared to its profit; dividend yield is the annual cash payout as a % of the price.</div>
 
     <div class="search-row">
       <input type="text" id="research-search-input" placeholder="Look up any ticker (e.g. AAPL)" autocapitalize="characters">
@@ -646,20 +656,6 @@
 </nav>
 
 </div><!-- /app-shell -->
-
-<!-- Confirm modal -->
-<div class="overlay" id="overlay">
-  <div class="modal">
-    <h3 id="modal-title">Confirm posture</h3>
-    <div class="sub" id="modal-sub">Review before anything is sent to Robinhood.</div>
-    <div id="modal-trades"></div>
-    <div class="banner-note" id="modal-note">Shadow mode: no live Robinhood connection yet, so nothing real executes. In the built version, this step sends staged trades to your Agentic account for final confirmation there too.</div>
-    <div class="modal-actions">
-      <button class="btn ghost" onclick="closeConfirm()">Cancel</button>
-      <button class="btn primary" id="confirm-send-btn" onclick="sendTrade()">Confirm &amp; send</button>
-    </div>
-  </div>
-</div>
 
 <!-- Draft reply modal -->
 <div class="overlay" id="overlay-draft">
@@ -867,37 +863,46 @@
     }
   }
 
-  let TIERS = [];
-  async function loadTiers(){
-    const container = document.getElementById('tiers-container');
-    try{
-      const data = await api('/api/financial/tiers');
-      TIERS = data.tiers;
-      container.innerHTML = TIERS.map(t => `
-        <div class="tier ${t.id}">
-          <div class="tier-top">
-            <div class="tier-name">${t.name}</div>
-            <div class="tier-alloc num">${t.allocationPct}%</div>
-          </div>
-          <div class="tier-desc">${t.description}</div>
-          <div class="tier-actions">
-            <button class="btn" onclick="togglePicks('${t.id}')">Buddy's Picks</button>
-            <button class="btn primary" onclick="openConfirm('${t.id}')">Choose posture</button>
-          </div>
-          <div class="picks" id="picks-${t.id}">
-            ${t.picks.map(p => `
-              <div class="pick-row"><div><div class="ticker">${p.ticker}</div><div class="why">${p.why}${p.currentPrice != null ? ` — $${p.currentPrice.toFixed(2)} (${p.todayChangePct >= 0 ? '+' : ''}${p.todayChangePct.toFixed(2)}%)` : ''}</div></div><div class="weight">${p.weightPct}%${p.suggestedAmount != null ? `<span class="weight-amount">${fmtUSD(p.suggestedAmount)}</span>` : ''}</div></div>
-            `).join('')}
-          </div>
-        </div>
-      `).join('');
-    } catch(err){
-      container.innerHTML = `<div class="load-note">Could not load risk tiers: ${err.message}</div>`;
-    }
-  }
+  const TIER_MEANING = {
+    low: 'Calmer, more established companies — the kind that usually move less in a week.',
+    medium: 'More established growth companies — bigger swings than Low, but not the wildest.',
+    high: 'Smaller or more unpredictable companies — could jump or drop a lot, fast, in either direction.',
+  };
 
-  function togglePicks(tierId){
-    document.getElementById('picks-'+tierId).classList.toggle('open');
+  async function loadCandidates(){
+    const container = document.getElementById('candidates-container');
+    try{
+      const data = await api('/api/financial/candidates');
+      const tiers = data.tiers || [];
+      if(tiers.length === 0){
+        container.innerHTML = `<div class="load-note">No ideas yet this week — ask Claude to refresh the research.</div>`;
+        return;
+      }
+      const disclaimer = data.disclaimer ? `<div class="candidates-disclaimer">${data.disclaimer}</div>` : '';
+      const asOf = data.generatedAt
+        ? `<div class="report-note">As of ${new Date(data.generatedAt).toLocaleString()} — refreshed automatically every Monday morning.</div>`
+        : '';
+      container.innerHTML = disclaimer + tiers.map(t => `
+        <div class="candidate-tier ${t.id}">
+          <div class="candidate-tier-name">${t.name}</div>
+          <div class="candidate-tier-meaning">${TIER_MEANING[t.id] || ''}</div>
+          ${t.selectionCriteria ? `<div class="candidate-tier-criteria">This week: ${t.selectionCriteria}</div>` : ''}
+          ${(t.candidates || []).length === 0
+            ? `<div class="no-candidates">Nothing cleared the bar for this tier this week.</div>`
+            : t.candidates.map(c => `
+              <div class="candidate-card">
+                <div class="candidate-top">
+                  <div><span class="candidate-ticker">${c.ticker}</span> <span class="candidate-name">${c.companyName || ''}</span></div>
+                  ${c.currentPrice != null ? `<div class="candidate-price num">$${c.currentPrice.toFixed(2)} <span class="${c.todayChangePct >= 0 ? 'up' : 'down'}">${c.todayChangePct >= 0 ? '+' : ''}${c.todayChangePct.toFixed(2)}%</span></div>` : ''}
+                </div>
+                <div class="candidate-note">${c.note}</div>
+              </div>
+            `).join('')}
+        </div>
+      `).join('') + asOf;
+    } catch(err){
+      container.innerHTML = `<div class="load-note">Could not load this week's ideas: ${err.message}</div>`;
+    }
   }
 
   function fmtMarketCap(n){
@@ -966,55 +971,6 @@
   document.getElementById('research-search-input').addEventListener('keydown', (e) => {
     if(e.key === 'Enter') searchResearch();
   });
-
-  let pendingTier = null;
-  async function openConfirm(tierId){
-    const tier = TIERS.find(t => t.id === tierId);
-    if(!tier) return;
-    pendingTier = tier;
-    document.getElementById('modal-title').textContent = tier.name + ' posture — ' + tier.allocationPct + '% allocation';
-    document.getElementById('modal-sub').textContent = 'Staging trades…';
-    document.getElementById('modal-trades').innerHTML = '';
-    document.getElementById('confirm-send-btn').disabled = true;
-    document.getElementById('overlay').classList.add('open');
-    try{
-      const staged = await api('/api/financial/stage', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ riskTier: tier.name, picks: tier.picks })
-      });
-      document.getElementById('modal-sub').textContent = 'Staged trades below. Nothing executes until you confirm.';
-      document.getElementById('modal-trades').innerHTML = tier.picks.map(p =>
-        `<div class="trade-row"><span>${p.ticker}</span><span class="num">${p.weightPct}%</span></div>`
-      ).join('');
-      document.getElementById('modal-note').textContent = staged.shadow
-        ? 'Shadow mode: no live Robinhood connection yet, so nothing real executes.'
-        : 'Live mode: confirming will send a real trade request to Robinhood.';
-      document.getElementById('confirm-send-btn').disabled = false;
-    } catch(err){
-      document.getElementById('modal-sub').textContent = 'Could not stage trades: ' + err.message;
-      document.getElementById('confirm-send-btn').disabled = true;
-    }
-  }
-  function closeConfirm(){
-    document.getElementById('overlay').classList.remove('open');
-  }
-  async function sendTrade(){
-    if(!pendingTier) return;
-    try{
-      const result = await api('/api/financial/confirm', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ riskTier: pendingTier.name, picks: pendingTier.picks, userConfirmed: true })
-      });
-      closeConfirm();
-      showToast(result.executed
-        ? pendingTier.name + ' posture executed (' + pendingTier.allocationPct + '%).'
-        : pendingTier.name + ' posture staged (' + pendingTier.allocationPct + '%) — shadow mode, no live trade sent.');
-    } catch(err){
-      showToast('Trade not sent: ' + err.message);
-    }
-  }
 
   document.getElementById('refresh-report').addEventListener('click', async ()=>{
     showToast('Re-running report…');
@@ -1179,7 +1135,7 @@
     loadHealth();
     loadPortfolio();
     loadReport();
-    loadTiers();
+    loadCandidates();
     loadResearch();
     loadOutlookStatus();
     loadGoogleStatus();

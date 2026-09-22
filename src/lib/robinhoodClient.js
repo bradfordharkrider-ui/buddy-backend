@@ -12,10 +12,11 @@
 // to fetch fresh data and rewrite the snapshot file. Re-run that whenever
 // the numbers look stale - see README "Connecting Robinhood".
 //
-// Trade execution stays simulated regardless (see executeTrades below) -
-// that's a hard rule, not a TODO: placing a real trade always has to be a
-// human action taken directly in the Robinhood app, never something an AI
-// executes on the user's behalf, however it's wired up.
+// Trades are never placed from this app - that's a hard rule, not a TODO:
+// placing a real trade always has to be a human action taken directly in
+// the Robinhood app, never something an AI executes on the user's behalf,
+// however it's wired up. Log anything you traded yourself via
+// POST /api/financial/holdings/trade (see holdingsLedger.js).
 
 import { readFile } from 'fs/promises';
 import path from 'path';
@@ -59,6 +60,12 @@ async function getHoldingsTickers() {
   return snapshot?.positions?.map((p) => p.symbol) || [];
 }
 
+async function getCandidateTickers() {
+  const snapshot = await loadCandidatesSnapshot();
+  if (!snapshot) return [];
+  return snapshot.tiers.flatMap((t) => t.candidates.map((c) => c.ticker));
+}
+
 function liveEntryToFundamentals(d) {
   return {
     marketCap: d.marketCap,
@@ -72,12 +79,14 @@ function liveEntryToFundamentals(d) {
   };
 }
 
-// Fixed-list research data (tier tickers + your holdings). When
-// FINNHUB_API_KEY is configured, this is fetched live on every call - no
-// manual refresh needed, since it's market data, not your private
-// account data. Falls back to the manual data/fundamentals-snapshot.json
-// if Finnhub isn't configured or the live fetch comes back empty. For an
-// arbitrary user-searched ticker, see lib/publicMarketData.js instead.
+// Research data for your holdings + this week's candidate tickers (see
+// getWeeklyCandidates below) - a watchlist that changes with the actual
+// weekly research instead of a fixed list. When FINNHUB_API_KEY is
+// configured, this is fetched live on every call - no manual refresh
+// needed, since it's public market data, not your private account data.
+// Falls back to the manual data/fundamentals-snapshot.json if Finnhub
+// isn't configured or the live fetch comes back empty. For an arbitrary
+// user-searched ticker, see lib/publicMarketData.js instead.
 export async function getFundamentals(ticker) {
   const snapshot = await loadFundamentalsSnapshot();
   if (!snapshot) return null;
@@ -88,8 +97,8 @@ export async function getFundamentals(ticker) {
 
 export async function getAllFundamentals() {
   if (READ_LIVE) {
-    const holdingsTickers = await getHoldingsTickers();
-    const allTickers = [...new Set([...TIER_TICKERS, ...holdingsTickers])];
+    const [holdingsTickers, candidateTickers] = await Promise.all([getHoldingsTickers(), getCandidateTickers()]);
+    const allTickers = [...new Set([...candidateTickers, ...holdingsTickers])];
     const live = await getLiveDataForTickers(allTickers);
     if (Object.keys(live).length > 0) {
       const fundamentals = {};
@@ -101,54 +110,6 @@ export async function getAllFundamentals() {
   if (!snapshot) return { generatedAt: null, fundamentals: {} };
   return snapshot;
 }
-
-// These are illustrative example baskets, not personalized recommendations -
-// Claude can't give investment advice, so it never picks or swaps tickers
-// here based on your situation. When ROBINHOOD_READ_LIVE is on, each pick
-// gets a real current quote merged in (see getRiskTiers) so the numbers are
-// factual, but the picks themselves stay fixed and are for you to evaluate
-// and act on (or not) yourself.
-const RISK_TIERS = [
-  {
-    id: 'low',
-    name: 'Low risk',
-    allocationPct: 35,
-    description: 'Capital preservation leaning. Broad, liquid, lower-volatility names. Modest realistic upside, minimal drawdown risk.',
-    picks: [
-      { ticker: 'VTI', why: 'Broad market anchor', weightPct: 40 },
-      { ticker: 'JNJ', why: 'Low-volatility defensive', weightPct: 30 },
-      { ticker: 'KO', why: 'Stable dividend payer', weightPct: 30 },
-    ],
-  },
-  {
-    id: 'medium',
-    name: 'Medium risk',
-    allocationPct: 45,
-    description: 'Balanced growth. Mix of established growth names and sector exposure with room to move both directions.',
-    picks: [
-      { ticker: 'MSFT', why: 'AI infra relative strength', weightPct: 35 },
-      { ticker: 'AVGO', why: 'Semis, elevated but liquid', weightPct: 30 },
-      { ticker: 'QQQ', why: 'Growth basket, diversified', weightPct: 35 },
-    ],
-  },
-  {
-    id: 'high',
-    name: 'High risk',
-    allocationPct: 20,
-    description: 'Aggressive. Higher expected swings in both directions — sized smaller on purpose. Real downside exposure, not just upside.',
-    picks: [
-      { ticker: 'SMCI', why: 'High-vol earnings play', weightPct: 30 },
-      { ticker: 'COIN', why: 'Crypto-adjacent momentum', weightPct: 35 },
-      { ticker: 'Short-dated call, single-name', why: 'Earnings-week vol setup', weightPct: 35 },
-    ],
-  },
-];
-
-// Real tickers only - excludes the "Short-dated call, single-name"
-// placeholder entry, which isn't an actual symbol to look up.
-const TIER_TICKERS = [...new Set(RISK_TIERS.flatMap((t) => t.picks.map((p) => p.ticker)))].filter((t) =>
-  /^[A-Z.]{1,6}$/.test(t)
-);
 
 export async function getPortfolio() {
   if (READ_LIVE) {
@@ -193,21 +154,6 @@ export async function getMarketReport() {
         note: 'Real research (macro, earnings calendar, sector signals, IPO watch) pulled weekly - ask Claude to refresh data/research-snapshot.json for the latest.',
       };
     }
-    const live = await getLiveDataForTickers(TIER_TICKERS);
-    if (Object.keys(live).length > 0) {
-      return {
-        shadow: false,
-        generatedAt: new Date().toISOString(),
-        blocks: [
-          {
-            title: 'Live quotes (risk-tier picks)',
-            items: TIER_TICKERS.filter((t) => live[t]).map((t) => quoteLine(t, live[t])),
-          },
-        ],
-        opinion: REAL_QUOTES_OPINION,
-        note: 'Live prices, fetched fresh on every load - no refresh needed.',
-      };
-    }
     const market = await loadMarketSnapshot();
     if (market) {
       return {
@@ -215,7 +161,7 @@ export async function getMarketReport() {
         generatedAt: market.generatedAt,
         blocks: [
           {
-            title: 'Real quotes (risk-tier picks)',
+            title: 'Quotes',
             items: Object.entries(market.quotes).map(([t, q]) => quoteLine(t, q)),
           },
         ],
@@ -265,48 +211,13 @@ export async function getMarketReport() {
   throw new Error('Live market report feed not yet implemented.');
 }
 
-function mergeTierQuotes(quotes, note) {
-  const tiers = RISK_TIERS.map((tier) => ({
-    ...tier,
-    picks: tier.picks.map((pick) => {
-      const q = quotes[pick.ticker];
-      return q ? { ...pick, currentPrice: q.price, todayChangePct: q.todayChangePct } : pick;
-    }),
-  }));
-  return { shadow: false, tiers, note };
-}
-
-export async function getRiskTiers() {
-  if (READ_LIVE) {
-    const live = await getLiveDataForTickers(TIER_TICKERS);
-    if (Object.keys(live).length > 0) {
-      return mergeTierQuotes(
-        live,
-        "Picks are illustrative examples with live current prices, not personalized recommendations - Buddy doesn't pick investments for you."
-      );
-    }
-    const market = await loadMarketSnapshot();
-    if (market) {
-      return mergeTierQuotes(
-        market.quotes,
-        "Picks are illustrative examples with real current prices, not personalized recommendations - Buddy doesn't pick investments for you."
-      );
-    }
-  }
-  return { shadow: SHADOW_MODE, tiers: RISK_TIERS };
-}
-
-// Weekly research candidates - separate on purpose from RISK_TIERS above.
-// RISK_TIERS is a fixed illustrative basket with pre-set weights (so the
-// /tiers dollar-amount math has something to divide against). Candidates
-// are the opposite: an unweighted, unranked slate per tier, surfaced only
-// because something objectively happened this week (an earnings beat, a
-// sector-wide move, an options/volatility screen hit) - never because
-// Claude judged one company better than another. No weightPct, no
-// suggestedAmount - allocation is entirely the user's call. Refreshed by
-// asking Claude to research the week and rewrite
-// data/candidates-snapshot.json, same manual-pull pattern as the other
-// snapshots.
+// Weekly research candidates: an unweighted, unranked slate per risk tier,
+// surfaced only because something objectively happened this week (an
+// earnings beat, a sector-wide move, an options/volatility screen hit) -
+// never because Claude judged one company better than another. No
+// weighting or dollar amounts - allocation is entirely the user's call.
+// Refreshed weekly (see the scheduled routine, or ask Claude to refresh
+// data/candidates-snapshot.json directly).
 export async function getWeeklyCandidates() {
   const snapshot = await loadCandidatesSnapshot();
   if (!snapshot) return { tiers: [] };
@@ -327,28 +238,4 @@ export async function getWeeklyCandidates() {
     }
   }
   return snapshot;
-}
-
-export async function stageTrades(riskTier, picks) {
-  // Staging never executes anything by itself - it just returns the
-  // trades that WOULD be sent, for the frontend to show in the confirm
-  // modal. Actual execution only happens in executeTrades(), and only
-  // after the user has explicitly confirmed.
-  return {
-    riskTier,
-    picks,
-    staged: true,
-    shadow: SHADOW_MODE,
-  };
-}
-
-export async function executeTrades(confirmedTrades) {
-  if (process.env.REQUIRE_MANUAL_CONFIRMATION !== 'false' && !confirmedTrades?.userConfirmed) {
-    throw new Error('Refusing to execute: user confirmation flag missing.');
-  }
-  if (SHADOW_MODE) {
-    return { executed: false, shadow: true, wouldHaveTraded: confirmedTrades };
-  }
-  // TODO: real MCP call to place the confirmed trades
-  throw new Error('Live Robinhood trade execution not yet implemented.');
 }
