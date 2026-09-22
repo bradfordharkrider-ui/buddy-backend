@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getPortfolio, getMarketReport, getRiskTiers, stageTrades, executeTrades, getAllFundamentals } from '../lib/robinhoodClient.js';
+import { getPortfolio, getMarketReport, getRiskTiers, getWeeklyCandidates, stageTrades, executeTrades, getAllFundamentals } from '../lib/robinhoodClient.js';
 import { recordTrade, getHoldings, getTradeHistory } from '../lib/holdingsLedger.js';
 import { searchTicker, isSearchConfigured } from '../lib/publicMarketData.js';
 
@@ -75,6 +75,20 @@ router.get('/tiers', async (req, res) => {
         };
       });
     }
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/financial/candidates - unranked, unweighted research candidates
+// per risk tier, surfaced from real events that happened this week (earnings,
+// sector moves, options/IV screens). Not a recommendation and not part of
+// RISK_TIERS' allocation math - see lib/robinhoodClient.js getWeeklyCandidates
+// for why these are kept separate.
+router.get('/candidates', async (req, res) => {
+  try {
+    const data = await getWeeklyCandidates();
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });

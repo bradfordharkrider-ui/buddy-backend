@@ -83,6 +83,21 @@ will update `RISK_TIERS` to match and redeploy. The picks and the % of your
 principal behind each one are always your call, made from Claude's research,
 not Claude's call.
 
+## Weekly research candidates
+
+`GET /api/financial/candidates` (`getWeeklyCandidates()` /
+`data/candidates-snapshot.json`) is one step further than the report above:
+3-4 tickers per risk tier that came up in that week's research, each with a
+factual note on what actually happened to it (an earnings beat, a sector
+move, an options/volatility screen hit). Still not a recommendation -
+candidates are unranked, unweighted, and included only because something
+objectively verifiable happened this week, never because Claude judged one
+company better than another. No dollar amounts are suggested here, unlike
+`RISK_TIERS`/`/tiers` - deciding whether to hold any of these, and how much
+of your principal to put behind them, is entirely up to you. Refresh the
+same way as the other snapshots: ask Claude to research the week and rewrite
+`data/candidates-snapshot.json`.
+
 ## Deploying so it's actually "live" on your phone
 
 This needs to run somewhere persistent, not on your Mac only. Simple

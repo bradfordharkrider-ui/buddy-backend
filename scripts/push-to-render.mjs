@@ -21,7 +21,7 @@ if (!RENDER_API_KEY || !RENDER_SERVICE_ID) {
   process.exit(1);
 }
 
-const FILES = ['robinhood-snapshot.json', 'market-snapshot.json', 'fundamentals-snapshot.json', 'research-snapshot.json', 'webauthn-credentials.json', 'outlook-token-cache.json', 'google-token.json'];
+const FILES = ['robinhood-snapshot.json', 'market-snapshot.json', 'fundamentals-snapshot.json', 'research-snapshot.json', 'candidates-snapshot.json', 'webauthn-credentials.json', 'outlook-token-cache.json', 'google-token.json'];
 const API_BASE = `https://api.render.com/v1/services/${RENDER_SERVICE_ID}`;
 
 async function pushSecretFile(filename) {

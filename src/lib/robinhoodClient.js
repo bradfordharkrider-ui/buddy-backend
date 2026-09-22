@@ -51,6 +51,7 @@ async function loadJsonSnapshot(filename) {
 const loadSnapshot = () => loadJsonSnapshot('robinhood-snapshot.json');
 const loadMarketSnapshot = () => loadJsonSnapshot('market-snapshot.json');
 const loadResearchSnapshot = () => loadJsonSnapshot('research-snapshot.json');
+const loadCandidatesSnapshot = () => loadJsonSnapshot('candidates-snapshot.json');
 const loadFundamentalsSnapshot = () => loadJsonSnapshot('fundamentals-snapshot.json');
 
 async function getHoldingsTickers() {
@@ -293,6 +294,39 @@ export async function getRiskTiers() {
     }
   }
   return { shadow: SHADOW_MODE, tiers: RISK_TIERS };
+}
+
+// Weekly research candidates - separate on purpose from RISK_TIERS above.
+// RISK_TIERS is a fixed illustrative basket with pre-set weights (so the
+// /tiers dollar-amount math has something to divide against). Candidates
+// are the opposite: an unweighted, unranked slate per tier, surfaced only
+// because something objectively happened this week (an earnings beat, a
+// sector-wide move, an options/volatility screen hit) - never because
+// Claude judged one company better than another. No weightPct, no
+// suggestedAmount - allocation is entirely the user's call. Refreshed by
+// asking Claude to research the week and rewrite
+// data/candidates-snapshot.json, same manual-pull pattern as the other
+// snapshots.
+export async function getWeeklyCandidates() {
+  const snapshot = await loadCandidatesSnapshot();
+  if (!snapshot) return { tiers: [] };
+  if (READ_LIVE) {
+    const allTickers = snapshot.tiers.flatMap((t) => t.candidates.map((c) => c.ticker));
+    const live = await getLiveDataForTickers(allTickers);
+    if (Object.keys(live).length > 0) {
+      return {
+        ...snapshot,
+        tiers: snapshot.tiers.map((tier) => ({
+          ...tier,
+          candidates: tier.candidates.map((c) => {
+            const q = live[c.ticker];
+            return q ? { ...c, currentPrice: q.price, todayChangePct: q.todayChangePct } : c;
+          }),
+        })),
+      };
+    }
+  }
+  return snapshot;
 }
 
 export async function stageTrades(riskTier, picks) {
